@@ -41,6 +41,19 @@ Shader "Unlit/TestWaterRendering"
                 float inside : SV_INSIDETESSFACTOR;
             };
 
+            bool TriangleIsBelowClipPlane(float3 p0, float3 p1, float3 p2, int planeIndex, float bias) {
+                float4 plane = unity_CameraWorldClipPlanes[planeIndex];
+
+                return dot(float4(p0, 1), plane) < bias && dot(float4(p1, 1), plane) < bias && dot(float4(p2, 1), plane) < bias;
+            }
+
+            bool cullTriangle(float3 p0, float3 p1, float3 p2, float bias) {
+                return TriangleIsBelowClipPlane(p0, p1, p2, 0, bias) ||
+                       TriangleIsBelowClipPlane(p0, p1, p2, 1, bias) ||
+                       TriangleIsBelowClipPlane(p0, p1, p2, 2, bias) ||
+                       TriangleIsBelowClipPlane(p0, p1, p2, 3, bias);
+            }
+
             // Tess Factor depends on how much this patch occupies on the screen.
             float TessellationHeuristic(float3 cp0, float3 cp1) {
                 float edgeLength = distance(cp0, cp1);
@@ -56,12 +69,17 @@ Shader "Unlit/TestWaterRendering"
                 float3 p2=mul(unity_ObjectToWorld, input.pos);
 
                 TessFactors f;
-                f.edge[0]=TessellationHeuristic(p1,p2);
-                f.edge[1]=TessellationHeuristic(p0,p2);
-                f.edge[2]=TessellationHeuristic(p0,p1);
-                f.inside=(TessellationHeuristic(p1, p2) +
-                          TessellationHeuristic(p2, p0) +
-                          TessellationHeuristic(p1, p2)) * (1 / 3.0);
+                float bias = -0.5 * 100;
+                if (cullTriangle(p0, p1, p2, bias)) {
+                    f.edge[0] = f.edge[1] = f.edge[2] = f.inside = 0;
+                } else {
+                    f.edge[0] = TessellationHeuristic(p1, p2);
+                    f.edge[1] = TessellationHeuristic(p2, p0);
+                    f.edge[2] = TessellationHeuristic(p0, p1);
+                    f.inside = (TessellationHeuristic(p1, p2) +
+                                TessellationHeuristic(p2, p0) +
+                                TessellationHeuristic(p1, p2)) * (1 / 3.0);
+                }
                 return f;
             }
 
@@ -94,7 +112,7 @@ Shader "Unlit/TestWaterRendering"
             [domain("tri")]
             d2g ds(const OutputPatch<v2h,3> patch, TessFactors tf, float2 uv:SV_DOMAINLOCATION){ 
                 d2g o;
-                o.pos.y = o.pos.z*sin(o.pos.x) + o.pos.x*cos(o.pos.z);
+                o.pos.y = 100.0 * (o.pos.x + o.pos.z);
                 o.pos.w = 1.0f;
                 
                 o.pos = UnityObjectToClipPos(o.pos);
@@ -104,7 +122,7 @@ Shader "Unlit/TestWaterRendering"
             fixed4 frag (d2g i) : SV_Target
             {
                 //fixed4 col = tex2D(_MainTex, i.uv);
-                fixed4 col = fixed4(i.pos.x, i.pos.y, 0.0, 1.0);
+                fixed4 col = i.pos;
                
                 return col;
             }
