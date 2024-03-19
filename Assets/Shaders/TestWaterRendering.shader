@@ -13,10 +13,8 @@ Shader "Unlit/TestWaterRendering"
         {
             CGPROGRAM
             #pragma vertex vert
+            #pragma hull hs
             #pragma fragment frag
-            // make fog work
-            #pragma multi_compile_fog
-
             #include "UnityCG.cginc"
 
             struct appdata
@@ -32,57 +30,82 @@ Shader "Unlit/TestWaterRendering"
                 float4 vertex : SV_POSITION;
             };
 
-            struct v2h{
-                float4 vertex:SV_POSITION;
-                float4 pos_WS;
-                float4 depth;
-                float2 uv:TEXCOORD0;
+            // control point
+            struct v2h{  
+                float4 pos:SV_POSITION; 
             };
 
-            struct h2t{
-                
+            #define _TessellationEdgeLength 10
+            struct TessFactors {
+                float edge[3] : SV_TESSFACTOR; // the bigger, the more tessellated triangles. =0, then culled at geometry shader.
+                float inside : SV_INSIDETESSFACTOR;
             };
 
-            struct HS_PATCH_CONST_DATA_OUTPUT{
+            // Tess Factor depends on how much this patch occupies on the screen.
+            float TessellationHeuristic(float3 cp0, float3 cp1) {
+                float edgeLength = distance(cp0, cp1);
+                float3 edgeCenter = (cp0 + cp1) * 0.5;
+                float viewDistance = distance(edgeCenter, _WorldSpaceCameraPos);
 
-            };
-
-            HS_PATCH_CONST_DATA_OUTPUT PatchFunction(){
-            
+                return edgeLength * _ScreenParams.y / (_TessellationEdgeLength * (pow(viewDistance * 0.5f, 1.2f)));
             }
+
+            TessFactors PatchFunction(v2h input){
+                float3 p0=mul(unity_ObjectToWorld, input.pos);
+                float3 p1=mul(unity_ObjectToWorld, input.pos);
+                float3 p2=mul(unity_ObjectToWorld, input.pos);
+
+                TessFactors f;
+                f.edge[0]=TessellationHeuristic(p1,p2);
+                f.edge[1]=TessellationHeuristic(p0,p2);
+                f.edge[2]=TessellationHeuristic(p0,p1);
+                f.inside=(TessellationHeuristic(p1, p2) +
+                          TessellationHeuristic(p2, p0) +
+                          TessellationHeuristic(p1, p2)) * (1 / 3.0);
+                return f;
+            }
+
+            struct d2g{
+                float4 pos:SV_POSITION; 
+            };
 
             sampler2D _MainTex;
             float4 _MainTex_ST;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            v2f vert (appdata v)
+            v2h vert (appdata v)
             {
-                v2f o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
-                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
-                UNITY_TRANSFER_FOG(o,o.vertex);
+                v2h o;
+                o.pos = UnityObjectToClipPos(v.vertex);
                 return o;
             }
 
             [domain("tri")]
             [partitioning("integer")]
             [outputtopology("triangle_cw")]
-            [outputcontrolpoints(32)]
-            [patchconstfunc("PatchFunction")]
-            h2t hull(v2h input, 
-                    InputPatch<HS_PATCH_CONST_DATA_OUTPUT,3> patch, 
-                    uint i:SV_OUTPUTCONTROLPOINTID, 
-                    uint PatchID:SV_PRIMITIVEID){
-            
+            [outputcontrolpoints(3)]
+            [patchconstantfunc("PatchFunction")]
+            v2h hs(InputPatch<v2h,3> patch, 
+                   uint i:SV_OUTPUTCONTROLPOINTID){
+                return patch[i];
             }
 
-            fixed4 frag (v2f i) : SV_Target
+            // Here patch is OutputPatch, i.e. output of hull shader
+            [domain("tri")]
+            d2g ds(const OutputPatch<v2h,3> patch, TessFactors tf, float2 uv:SV_DOMAINLOCATION){ 
+                d2g o;
+                o.pos.y = o.pos.z*sin(o.pos.x) + o.pos.x*cos(o.pos.z);
+                o.pos.w = 1.0f;
+                
+                o.pos = UnityObjectToClipPos(o.pos);
+                return o;
+            }
+
+            fixed4 frag (d2g i) : SV_Target
             {
-                // sample the texture
-                fixed4 col = tex2D(_MainTex, i.uv);
+                //fixed4 col = tex2D(_MainTex, i.uv);
+                fixed4 col = fixed4(i.pos.x, i.pos.y, 0.0, 1.0);
                
-                // apply fog
-                UNITY_APPLY_FOG(i.fogCoord, col);
                 return col;
             }
             ENDCG
