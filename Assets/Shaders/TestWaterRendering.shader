@@ -111,10 +111,13 @@ Shader "Unlit/TestWaterRendering"
             // Here patch is OutputPatch, i.e. output of hull shader
             [domain("tri")]
             d2g ds(const OutputPatch<v2h,3> patch, TessFactors tf, float2 uv:SV_DOMAINLOCATION){ 
+                float3 v1=lerp(patch[0].pos, patch[1].pos, uv.x);
+                float3 v2=lerp(patch[0].pos, patch[2].pos, uv.x);
+                float3 p=lerp(v1,v2, uv.y);
+                p.y=0.3f*( p.z*sin(p.x) * p.x*cos(p.z) );
+
                 d2g o;
-                o.pos.y = 100.0 * (o.pos.x + o.pos.z);
-                o.pos.w = 1.0f;
-                
+                o.pos=float4(p,1.0f);
                 o.pos = UnityObjectToClipPos(o.pos);
                 return o;
             }
