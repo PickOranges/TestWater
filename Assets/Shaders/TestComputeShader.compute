@@ -1,14 +1,57 @@
-// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
+#pragma kernel Gaussian2D 
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
-RWTexture2D<float4> Result;
+
+RWTexture2D<float4> Result, Gaussian;
+float2 k, w/* omega */, D;
+float L, PI=3.1415926, g=9.81;
+int M,N;
+
+float2 Dispersion(float2 k, float2 D){
+    if(length(k*2*PI/L)<=0.01){
+    
+    }
+    else{
+    
+    }
+    return float2(0,0);
+}
+
+float2 JONSWAP(float2 P, float real, float im){
+
+    return float2(0,0); // h(k)
+}
+
+float2 Conjugation(float2 hk){
+
+    float2(0,0); // h(k,t)
+}
+
+[numthreads(8,8,1)]
+void Gaussian2D(uint3 id : SV_DispatchThreadID, RWTexture2D<float4> tex){
+
+    
+}
+
+void GaussianSampler(inout float2 coef){
+
+}
+
+float SeedGenerator(float seed){
+
+    return 0.0;
+}
+
+float hash(){
+
+    return 0.0;
+}
 
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    // TODO: insert actual code here!
+    
 
     Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
 }
+

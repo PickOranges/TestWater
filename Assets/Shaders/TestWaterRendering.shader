@@ -14,6 +14,8 @@ Shader "Unlit/TestWaterRendering"
             CGPROGRAM
             #pragma vertex vert
             #pragma hull hs
+            #pragma domain ds
+            #pragma geometry gs
             #pragma fragment frag
             #include "UnityCG.cginc"
 
@@ -23,16 +25,17 @@ Shader "Unlit/TestWaterRendering"
                 float2 uv : TEXCOORD0;
             };
 
-            struct v2f
-            {
-                float2 uv : TEXCOORD0;
-                UNITY_FOG_COORDS(1)
-                float4 vertex : SV_POSITION;
-            };
+            //struct v2f
+            //{
+            //    float2 uv : TEXCOORD0;
+            //    UNITY_FOG_COORDS(1)
+            //    float4 vertex : SV_POSITION;
+            //};
 
             // control point
             struct v2h{  
                 float4 pos:SV_POSITION; 
+                //float2 uv:TEXCOORD0;  // ??? is uv necessary or NOT ???
             };
 
             #define _TessellationEdgeLength 10
@@ -63,10 +66,10 @@ Shader "Unlit/TestWaterRendering"
                 return edgeLength * _ScreenParams.y / (_TessellationEdgeLength * (pow(viewDistance * 0.5f, 1.2f)));
             }
 
-            TessFactors PatchFunction(v2h input){
-                float3 p0=mul(unity_ObjectToWorld, input.pos);
-                float3 p1=mul(unity_ObjectToWorld, input.pos);
-                float3 p2=mul(unity_ObjectToWorld, input.pos);
+            TessFactors PatchFunction(InputPatch<v2h,3> input, uint i:SV_PRIMITIVEID){
+                float3 p0=mul(unity_ObjectToWorld, input[0].pos);
+                float3 p1=mul(unity_ObjectToWorld, input[1].pos);
+                float3 p2=mul(unity_ObjectToWorld, input[2].pos);
 
                 TessFactors f;
                 float bias = -0.5 * 100;
@@ -87,6 +90,11 @@ Shader "Unlit/TestWaterRendering"
                 float4 pos:SV_POSITION; 
             };
 
+            struct g2f{
+                float4 pos:SV_POSITION; 
+                float3 bary:TEXCOORD1;
+            };
+
             sampler2D _MainTex;
             float4 _MainTex_ST;
 
@@ -94,7 +102,8 @@ Shader "Unlit/TestWaterRendering"
             v2h vert (appdata v)
             {
                 v2h o;
-                o.pos = UnityObjectToClipPos(v.vertex);
+                //o.pos = UnityObjectToClipPos(v.vertex);
+                o.pos=v.vertex;
                 return o;
             }
 
@@ -110,24 +119,42 @@ Shader "Unlit/TestWaterRendering"
 
             // Here patch is OutputPatch, i.e. output of hull shader
             [domain("tri")]
-            d2g ds(const OutputPatch<v2h,3> patch, TessFactors tf, float2 uv:SV_DOMAINLOCATION){ 
-                float3 v1=lerp(patch[0].pos, patch[1].pos, uv.x);
-                float3 v2=lerp(patch[0].pos, patch[2].pos, uv.x);
-                float3 p=lerp(v1,v2, uv.y);
-                p.y=0.3f*( p.z*sin(p.x) * p.x*cos(p.z) );
-
+            d2g ds(const OutputPatch<v2h,3> patch, TessFactors tf, float3 bary:SV_DOMAINLOCATION){ 
                 d2g o;
-                o.pos=float4(p,1.0f);
-                o.pos = UnityObjectToClipPos(o.pos);
+                o.pos=patch[0].pos*bary.x + patch[1].pos*bary.y + patch[2].pos*bary.z;
+                // TODO: do the same to bary coord. ?? or necessary??
+
+                o.pos=UnityObjectToClipPos(o.pos);
                 return o;
             }
 
-            fixed4 frag (d2g i) : SV_Target
+            [maxvertexcount(3)]
+            void gs(triangle d2g i[3], inout TriangleStream<g2f> stream){  // re-assign extreme values to each vertex of a triangle
+                g2f o;
+                o.pos=i[0].pos;
+                o.bary=float3(1,0,0);
+                stream.Append(o);
+
+                o.pos=i[1].pos;
+                o.bary=float3(0,1,0);
+                stream.Append(o);
+
+                o.pos=i[2].pos;
+                o.bary=float3(0,0,1);
+                stream.Append(o);
+            }
+
+            fixed4 frag (g2f i) : SV_Target
             {
                 //fixed4 col = tex2D(_MainTex, i.uv);
-                fixed4 col = i.pos;
-               
-                return col;
+                //fixed4 col = fixed4(i.pos);
+                //return col;
+
+                float4 wireCol = float4(0,0,0,1);
+                float4 baseCol = float4(1,1,1,1);
+
+                float dist=min(min(i.bary.x, i.bary.y), i.bary.z);
+                return float4(lerp(wireCol, baseCol, dist).xyz, 1);
             }
             ENDCG
         }

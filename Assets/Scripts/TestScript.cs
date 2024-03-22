@@ -21,8 +21,8 @@ public class TestScript : MonoBehaviour
         waterFFTShader.SetTexture(0, "Result", _target);
         _camera = Camera.main;
 
-        CreatePlane();
-        CreateMaterial();
+        //CreatePlane();
+        //CreateMaterial();
     }
     void InitRenderTexture()
     {
@@ -41,17 +41,17 @@ public class TestScript : MonoBehaviour
         int groupY=_target.height / 8;
         waterFFTShader.Dispatch(0,groupX,groupY,1);
 
-        //RenderPipelineManager.endCameraRendering += OnEndCameraRendering;
+        RenderPipelineManager.endCameraRendering += OnEndCameraRendering;
     }
    
     void OnEndCameraRendering(ScriptableRenderContext context, Camera camera)
     {
-        //if (!_target)
-        //{
-        //    //Debug.Log("RenderTexture is empty.");
-        //    return;
-        //}
-        //Graphics.Blit(_target, camera.targetTexture);
+        if (!_target)
+        {
+            //Debug.Log("RenderTexture is empty.");
+            return;
+        }
+        Graphics.Blit(_target, camera.targetTexture);
     }
 
     private void OnDestroy()
@@ -62,9 +62,9 @@ public class TestScript : MonoBehaviour
     void CreatePlane()
     {
         GetComponent<MeshFilter>().mesh = mesh = new Mesh();
-        int length = 10;
+        int length = 100;
         float halfL = length * 0.5f;
-        int res = 10;
+        int res = 2;
         int sideCnt = length * res;
         int num_vert = sideCnt * sideCnt;
         verts = new Vector3[(sideCnt+1)* (sideCnt + 1)];  // +1 to avoid triangle idx access the vertex index that goes out of bound.
@@ -78,10 +78,10 @@ public class TestScript : MonoBehaviour
         
         // fill verts
         float deltaLength=(float)length/sideCnt;
-        for(int i=0, x=0; x<sideCnt; ++x)
+        for(int i=0, x=0; x<=sideCnt; ++x)
         {
-            for (int z=0; z<sideCnt; ++z){
-                verts[i++] = new Vector3( x*deltaLength-halfL, 0, z*deltaLength - halfL);  // init vert coordinates, later vert.y will be replaced with the real height.
+            for (int z=0; z<=sideCnt; ++z, ++i){
+                verts[i] = new Vector3( x*deltaLength-halfL, 0, z*deltaLength - halfL);  // init vert coordinates, later vert.y will be replaced with the real height.
                 uv[i] = new Vector2((float)x / sideCnt, (float)z / sideCnt);
                 tangents[i] = tangent;
             }
@@ -90,9 +90,9 @@ public class TestScript : MonoBehaviour
         // fill tris
         for (int vi=0, ti=0, x=0; x<sideCnt; ++x)
         {
-            for(int z=0; z<sideCnt; ++z, ++vi, ++ti)
+            for(int z=0; z<sideCnt; ++z, ++vi)
             {
-                tris[ti] = vi;
+                tris[ti++] = vi;
                 tris[ti++] = vi + 1;
                 tris[ti++] = vi + 2 + sideCnt;
 
