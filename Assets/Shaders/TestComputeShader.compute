@@ -1,37 +1,43 @@
 #pragma kernel CSMain
-#pragma kernel Gaussian2D 
 
+#define PI 3.14159265358979323846
+#define g 9.81
 
-RWTexture2D<float4> Result, Gaussian;
+RWTexture2D<float4> Result;
 float2 k, w/* omega */, D/* depth */;
-float L, PI=3.1415926, g=9.81;
+float L;
 int M,N;
 
 float tanhvalue(float kD){ // k: length/magnitute of vector k=[kx, kz]
     return tanh(min(kD, 3));        // original: 20, idk why?
 }
 
-float Frequency(float k, float tanhvalue){ 
-   return sqrt(g*k*tanhvalue);
+float Frequency(float k, float tanhv){ 
+   return sqrt(g*k*tanhv);
 }
 
-float FrequencyDerivative(float kD, float tanhvalue, float freq){  // length/magnitute of w(k)
+float FrequencyDerivative(float kD, float tanhv, float freq){  // length/magnitute of w(k)
     float sech2=pow(1/cosh(kD),2);
-    return 0.5*g*(kD*sech2 + tanhvalue) / freq;
+    return 0.5*g*(kD*sech2 + tanhv) / freq;
 }
 
-void GaussianSampler(inout float2 coef){
-
+float Gaussian(float x){ // seed
+    return exp(-0.5*x*x)/sqrt(2*PI);
 }
 
-float SeedGenerator(float seed){
-
-    return 0.0;
+// generates different seeds for sampling 
+float hash(uint n) {
+    // integer hash copied from Hugo Elias
+    n = (n << 13U) ^ n;
+    n = n * (n * n * 15731U + 0x789221U) + 0x1376312589U;
+    return float(n & uint(0x7fffffffU)) / float(0x7fffffff);
 }
 
-float hash(){
+float2 UniformToGaussian(float u1, float u2) { // ??? what is u1, u2, R, theta
+    float R = sqrt(-2.0f * log(u1));  // log: base-e, i.e. ln(..)
+    float theta = 2.0f * PI * u2;
 
-    return 0.0;
+    return float2(R * cos(theta), R * sin(theta));
 }
 
 float2 JONSWAP(float2 P, float real, float im){
@@ -46,13 +52,6 @@ float2 Conjugation(float2 hk){
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-[numthreads(8,8,1)]
-void Gaussian2D(uint3 id : SV_DispatchThreadID, RWTexture2D<float4> tex){
-
-    
-}
-
-
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
