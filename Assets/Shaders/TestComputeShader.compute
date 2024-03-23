@@ -4,9 +4,21 @@
 #define g 9.81
 
 RWTexture2D<float4> Result;
-float2 k, w/* omega */, D/* depth */;
+float2 k, D/* depth */;
 float L;
 int M,N;
+
+struct SpectrumParameters { // passed from CPU to GPU, also user can adjust those params for 8 spectrums respectively.
+	float scale;
+	float angle;
+	float spreadBlend;
+	float swell;
+	float alpha;
+	float peakOmega;
+	float gamma;
+	float shortWavesFade;
+};
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 float tanhvalue(float kD){ // k: length/magnitute of vector k=[kx, kz]
     return tanh(min(kD, 3));        // original: 20, idk why?
@@ -25,7 +37,7 @@ float Gaussian(float x){ // seed
     return exp(-0.5*x*x)/sqrt(2*PI);
 }
 
-// generates different seeds for sampling 
+// ???
 float hash(uint n) {
     // integer hash copied from Hugo Elias
     n = (n << 13U) ^ n;
@@ -33,6 +45,7 @@ float hash(uint n) {
     return float(n & uint(0x7fffffffU)) / float(0x7fffffff);
 }
 
+// ???
 float2 UniformToGaussian(float u1, float u2) { // ??? what is u1, u2, R, theta
     float R = sqrt(-2.0f * log(u1));  // log: base-e, i.e. ln(..)
     float theta = 2.0f * PI * u2;
@@ -40,14 +53,41 @@ float2 UniformToGaussian(float u1, float u2) { // ??? what is u1, u2, R, theta
     return float2(R * cos(theta), R * sin(theta));
 }
 
-float2 JONSWAP(float2 P, float real, float im){
+// eq 28
+float JONSWAP(SpectrumParameters sp, float w /* freq */){
+    float sigma = (w<=sp.peakOmega) ? 0.07 : 0.09;
+    float r = exp( -pow(w-sp.peakOmega, 2) / (2*pow(sigma*sp.peakOmega,2)) );
 
-    return float2(0,0); // h(k)
+    return sp.alpha*g*g/pow(w,5) * exp(-1.25 * pow(sp.peakOmega/w, 4)) * pow(3.3, 4);
 }
 
-float2 Conjugation(float2 hk){
+// eq 30
+float TMA_phi(float w){  
+    float wh = w*sqrt(D/g);
+    float phi = wh<=1 ? 0.5*wh*wh : 1-0.5*(2-wh)*(2-wh);
+    return phi;
+}
 
-    float2(0,0); // h(k,t)
+// eq 33 & 44, but they use different s.
+float MitsuyasuDS(float w, float theta, float s){
+    return Q(s) * pow(abs(cos(theta/2)), 2*s);
+}
+
+// eq 34
+float Q(float s){  // ??? Not finished yet
+    return 1.0;
+}
+
+// eq 37
+float ShapingParameter(SpectrumParameters sp, float w){
+    float a=w/sp.peakOmega;
+    if(w<=sp.peakOmega) return 6.97*pow(a,4); 
+    return 9.77*pow(a,-2.5);  // ???
+}
+
+// eq 45
+float ShapingParameterSksi(SpectrumParameters sp, float w, float ksi){
+    return 16*tanh(sp.peakOmega/w)*ksi*ksi;
 }
 
 
