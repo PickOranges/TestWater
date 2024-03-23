@@ -3,34 +3,21 @@
 
 
 RWTexture2D<float4> Result, Gaussian;
-float2 k, w/* omega */, D;
+float2 k, w/* omega */, D/* depth */;
 float L, PI=3.1415926, g=9.81;
 int M,N;
 
-float2 Dispersion(float2 k, float2 D){
-    if(length(k*2*PI/L)<=0.01){
-    
-    }
-    else{
-    
-    }
-    return float2(0,0);
+float tanhvalue(float kD){ // k: length/magnitute of vector k=[kx, kz]
+    return tanh(min(kD, 3));        // original: 20, idk why?
 }
 
-float2 JONSWAP(float2 P, float real, float im){
-
-    return float2(0,0); // h(k)
+float Frequency(float k, float tanhvalue){ 
+   return sqrt(g*k*tanhvalue);
 }
 
-float2 Conjugation(float2 hk){
-
-    float2(0,0); // h(k,t)
-}
-
-[numthreads(8,8,1)]
-void Gaussian2D(uint3 id : SV_DispatchThreadID, RWTexture2D<float4> tex){
-
-    
+float FrequencyDerivative(float kD, float tanhvalue, float freq){  // length/magnitute of w(k)
+    float sech2=pow(1/cosh(kD),2);
+    return 0.5*g*(kD*sech2 + tanhvalue) / freq;
 }
 
 void GaussianSampler(inout float2 coef){
@@ -46,6 +33,25 @@ float hash(){
 
     return 0.0;
 }
+
+float2 JONSWAP(float2 P, float real, float im){
+
+    return float2(0,0); // h(k)
+}
+
+float2 Conjugation(float2 hk){
+
+    float2(0,0); // h(k,t)
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+[numthreads(8,8,1)]
+void Gaussian2D(uint3 id : SV_DispatchThreadID, RWTexture2D<float4> tex){
+
+    
+}
+
 
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
