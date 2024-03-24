@@ -17,6 +17,8 @@ struct SpectrumParameters { // passed from CPU to GPU, also user can adjust thos
 	float peakOmega;
 	float gamma;
 	float shortWavesFade;
+    // new
+    float windSpeed;
 };
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -38,6 +40,7 @@ float Gaussian(float x){ // seed
 }
 
 // ???
+// Todo: check both
 float hash(uint n) {
     // integer hash copied from Hugo Elias
     n = (n << 13U) ^ n;
@@ -74,15 +77,21 @@ float MitsuyasuDS(float w, float theta, float s){
 }
 
 // eq 34
-float Q(float s){  // ??? Not finished yet
-    return 1.0;
+float Q(float s){  
+    return pow(2, 2*s-1)/PI * pos(EulerGamma(s+1),2) / EulerGamma(2*s+1);
+}
+
+float EulerGamma(float s){
+    float res=1;
+    for(int i=1; i<=s; ++i) res*=i;
+    return res;
 }
 
 // eq 37
 float ShapingParameter(SpectrumParameters sp, float w){
     float a=w/sp.peakOmega;
-    if(w<=sp.peakOmega) return 6.97*pow(a,4); 
-    return 9.77*pow(a,-2.5);  // ???
+    if(w<=sp.peakOmega) return 6.97*pow(a,4.06); 
+    return 9.77*pow(a,-2.33-1.45*(sp.windSpeed*sp.peakOmega/g)-1.17); 
 }
 
 // eq 45
