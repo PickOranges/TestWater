@@ -3,12 +3,12 @@
 #define PI 3.14159265358979323846
 #define g 9.81
 
-//RWTexture2D<float4> InitSpectrumTexture;  // Why not this one ??? What's the difference ??? array: an array of RWTexture2D, i.e. allow pass multiple texs. 
+RWTexture2D<float4> InitSpectrumTexture;  // Why not this one ??? What's the difference ??? array: an array of RWTexture2D, i.e. allow pass multiple texs. 
                                             // Useful for terrain.
-RWTexture2DArray<float4> InitSpectrumTexture; 
+//RWTexture2DArray<float4> InitSpectrumTexture; 
 
 float D/* depth */;
-float L, LowCutoff, HighCutoff;
+float L, _LowCutoff, _HighCutoff;
 uint N;
 
 struct SpectrumParameters { // passed from CPU to GPU, also user can adjust those params for 8 spectrums respectively.
@@ -134,8 +134,9 @@ float ShortWavesFade(SpectrumParameters sp, float kLength) {
 [numthreads(8,8,1)]
 void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
 {
-    InitSpectrumTexture[uint3(id.xy,0)] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0); // something wrong with read back to CPU side ???
-    return;
+    //InitSpectrumTexture[uint3(id.xy,0)] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0); // something wrong with read back to CPU side ???
+    //InitSpectrumTexture[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0); // something wrong with read back to CPU side ???
+    //return;
 
     uint seed=N*id.y + id.x + N;
 
@@ -155,13 +156,15 @@ void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
     float dw=FrequencyDerivative(kLength, tanhval, w);
 
 
-    if(kLength<LowCutoff || kLength>HighCutoff){
-        InitSpectrumTexture[uint3(id.xy,0)]=float4(0,0,1,0);
+    if(kLength<_LowCutoff || kLength>_HighCutoff){
+        //InitSpectrumTexture[uint3(id.xy,0)]=float4(0,0,1,0);
+        InitSpectrumTexture[id.xy]=float4(0,0,1,0);
     }
     else{
         float spectrum = TMA_phi(w) * JONSWAP(Sps[0],w) * finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
-        InitSpectrumTexture[uint3(id.xy,0)]=float4(gauss * sqrt(2*spectrum * abs(dw) / kLength * dk *dk), 0.0, 0.0); 
-        InitSpectrumTexture[uint3(id.xy,0)]=float4(0,1,0,0);
+        //InitSpectrumTexture[uint3(id.xy,0)]=float4(gauss * sqrt(2*spectrum * abs(dw) / kLength * dk *dk), 0.0, 0.0); 
+        //InitSpectrumTexture[uint3(id.xy,0)]=float4(0,1,0,0);
+        InitSpectrumTexture[id.xy]=float4(gauss * sqrt(2*spectrum * abs(dw) / kLength * dk *dk), 0.0, 0.0); 
     }
 }
 

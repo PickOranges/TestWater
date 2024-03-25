@@ -10,7 +10,7 @@ public class TestScript : MonoBehaviour
     public ComputeShader waterFFTShader;
     public Shader waterRenderingShader;
     Camera _camera;  // ??? never read
-    RenderTexture _target;
+    public RenderTexture _target;
     Mesh mesh;
     Material material;
     Vector3[] verts;
@@ -39,9 +39,6 @@ public class TestScript : MonoBehaviour
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     [Header("Spectrum Settings")]
-    [Range(0, 100000)]
-    public int seed = 0;
-
     [Range(0.0f, 0.1f)]
     public float lowCutoff = 0.0001f;
 
@@ -109,13 +106,14 @@ public class TestScript : MonoBehaviour
 
 
         // 1. Create Textures
-        //_target = CreateRenderTex(N, N, 4, RenderTextureFormat.ARGBHalf, true);  
-        _target = CreateRenderTex(N, N, 4, RenderTextureFormat.ARGB32, true);
+        //_target = CreateRenderTex(N, N, 4, RenderTextureFormat.ARGBHalf, true);
+        InitRenderTexture();
+
 
         // 2. Set data
         waterFFTShader.SetTexture(0, "InitSpectrumTexture", _target);
         _camera = Camera.main;
-        spectrumParamsBuffer = new ComputeBuffer(8, 9*sizeof(float));
+        spectrumParamsBuffer = new ComputeBuffer(9, 9*sizeof(float));
         SetSpectrumBuffers();
         SetFFTUniforms();
 
@@ -140,6 +138,7 @@ public class TestScript : MonoBehaviour
 
     RenderTexture CreateRenderTex(int width, int height, int depth, RenderTextureFormat format, bool useMips)
     {
+        if (_target != null) _target.Release();
         RenderTexture rt = new RenderTexture(width, height, 0, format, RenderTextureReadWrite.Linear);
         rt.dimension = UnityEngine.Rendering.TextureDimension.Tex2DArray; 
         rt.filterMode = FilterMode.Bilinear;
@@ -165,6 +164,7 @@ public class TestScript : MonoBehaviour
             return;
         }
         Graphics.Blit(_target, camera.targetTexture);
+        //Graphics.CopyTexture(_target, camera.targetTexture);
     }
 
     // Q: which one/what kind of data types should be released explicitly ???
