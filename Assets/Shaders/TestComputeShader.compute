@@ -27,8 +27,8 @@ StructuredBuffer<SpectrumParameters> Sps;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 float tanhvalue(float kD){ // k: length/magnitute of vector k=[kx, kz]
-    //return tanh(min(kD, 3));        // original: 20, idk why?
-    return tanh(min(kD, 20));        
+    return tanh(min(kD, 3));        // original: 20, idk why?
+    //return tanh(min(kD, 20));        
 }
 
 float Frequency(float k, float tanhv){ 
@@ -64,16 +64,19 @@ float2 UniformToGaussian(float u1, float u2) { // ??? what is u1, u2, R, theta
 // eq 28
 float JONSWAP(SpectrumParameters sp, float w /* freq */){
     float sigma = (w<=sp.peakOmega) ? 0.07 : 0.09;
-    float r = exp( -pow(w-sp.peakOmega, 2) / (2*pow(sigma*sp.peakOmega,2)) );
-
+    
+    float r = exp( -pow(w-sp.peakOmega, 2) / (2*pow(sigma*sp.peakOmega,2)) ); // Why zero ????
+    
     return sp.alpha*g*g/pow(w,5) * exp(-1.25 * pow(sp.peakOmega/w, 4)) * pow(3.3, 4);
 }
 
 // eq 30
 float TMA_phi(float w){  
     float wh = w*sqrt(D/g);
-    float phi = wh<=1 ? 0.5*wh*wh : 1-0.5*(2-wh)*(2-wh);
-    return phi;
+
+    if(wh<=1.0) return 0.5*wh*wh;
+    if(wh<=2.0) return 1-0.5*(2-wh)*(2-wh);
+    return 1.0;
 }
 
 // TODO: optimised GPU parallel version
@@ -166,7 +169,7 @@ void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
         //InitSpectrumTexture[uint3(id.xy,0)]=float4(gauss * sqrt(2*spectrum * abs(dw) / kLength * dk *dk), 0.0, 0.0); 
         //InitSpectrumTexture[uint3(id.xy,0)]=float4(0,1,0,0);
         //InitSpectrumTexture[id.xy]=float4(gauss * sqrt(2*spectrum * abs(dw) / kLength * dk *dk), 0.0, 0.0); 
-        InitSpectrumTexture[id.xy]=float4(, 0.0, 0.0, 0.0); 
+        InitSpectrumTexture[id.xy]=float4(TMA_phi(w), 0.0, 0.0, 0.0); 
     }
 }
 
