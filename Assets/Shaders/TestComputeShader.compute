@@ -64,10 +64,10 @@ float2 UniformToGaussian(float u1, float u2) { // ??? what is u1, u2, R, theta
 // eq 28
 float JONSWAP(SpectrumParameters sp, float w /* freq */){
     float sigma = (w<=sp.peakOmega) ? 0.07 : 0.09;
-    
-    float r = exp( -pow(w-sp.peakOmega, 2) / (2*pow(sigma*sp.peakOmega,2)) ); // Why zero ????
-    
-    return sp.alpha*g*g/pow(w,5) * exp(-1.25 * pow(sp.peakOmega/w, 4)) * pow(3.3, 4);
+    float r = exp(- (w-sp.peakOmega)*(w-sp.peakOmega) / 2 / sigma / sigma / sp.peakOmega / sp.peakOmega ); // Why zero ????
+    float r1 = exp( (w-sp.peakOmega)*(w-sp.peakOmega) / 2 / sigma / sigma / sp.peakOmega / sp.peakOmega ); 
+    float w_repri=1/w;
+    return sp.alpha * g * g * pow(w_repri,5) * exp(-1.25 * pow(sp.peakOmega/w, 4)) * pow(3.3, r1) ;  // ????
 }
 
 // eq 30
@@ -168,8 +168,8 @@ void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
         float spectrum = TMA_phi(w) * JONSWAP(Sps[0],w) * finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
         //InitSpectrumTexture[uint3(id.xy,0)]=float4(gauss * sqrt(2*spectrum * abs(dw) / kLength * dk *dk), 0.0, 0.0); 
         //InitSpectrumTexture[uint3(id.xy,0)]=float4(0,1,0,0);
-        //InitSpectrumTexture[id.xy]=float4(gauss * sqrt(2*spectrum * abs(dw) / kLength * dk *dk), 0.0, 0.0); 
-        InitSpectrumTexture[id.xy]=float4(TMA_phi(w), 0.0, 0.0, 0.0); 
+        InitSpectrumTexture[id.xy]=float4(gauss * sqrt(2*spectrum * abs(dw) / kLength * dk *dk), 0.0, 0.0); 
+        //InitSpectrumTexture[id.xy]=float4(JONSWAP(Sps[0],w), 0.0, 0.0, 0.0); 
     }
 }
 
