@@ -27,7 +27,8 @@ StructuredBuffer<SpectrumParameters> Sps;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 float tanhvalue(float kD){ // k: length/magnitute of vector k=[kx, kz]
-    return tanh(min(kD, 3));        // original: 20, idk why?
+    //return tanh(min(kD, 3));        // original: 20, idk why?
+    return tanh(min(kD, 20));        
 }
 
 float Frequency(float k, float tanhv){ 
@@ -164,7 +165,8 @@ void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
         float spectrum = TMA_phi(w) * JONSWAP(Sps[0],w) * finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
         //InitSpectrumTexture[uint3(id.xy,0)]=float4(gauss * sqrt(2*spectrum * abs(dw) / kLength * dk *dk), 0.0, 0.0); 
         //InitSpectrumTexture[uint3(id.xy,0)]=float4(0,1,0,0);
-        InitSpectrumTexture[id.xy]=float4(gauss * sqrt(2*spectrum * abs(dw) / kLength * dk *dk), 0.0, 0.0); 
+        //InitSpectrumTexture[id.xy]=float4(gauss * sqrt(2*spectrum * abs(dw) / kLength * dk *dk), 0.0, 0.0); 
+        InitSpectrumTexture[id.xy]=float4(, 0.0, 0.0, 0.0); 
     }
 }
 
