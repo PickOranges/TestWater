@@ -412,6 +412,78 @@ MonoBehaviour:
   waterFFTShader: {fileID: 7200000, guid: 1270b0d77cbad05449bce9310fedf8c3, type: 3}
   waterRenderingShader: {fileID: 4800000, guid: 245b57e8f8f074a4d952b327ed1c5914,
     type: 3}
+  spectrum0:
+    scale: 0.1
+    windSpeed: 2
+    windDirection: 22
+    fetch: 100000
+    spreadBlend: 0.642
+    swell: 1
+    peakEnhancement: 1
+    shortWavesFade: 0.025
+  spectrum1:
+    scale: 0
+    windSpeed: 0
+    windDirection: 0
+    fetch: 0
+    spreadBlend: 0
+    swell: 0
+    peakEnhancement: 0
+    shortWavesFade: 0
+  spectrum2:
+    scale: 0
+    windSpeed: 0
+    windDirection: 0
+    fetch: 0
+    spreadBlend: 0
+    swell: 0
+    peakEnhancement: 0
+    shortWavesFade: 0
+  spectrum3:
+    scale: 0
+    windSpeed: 0
+    windDirection: 0
+    fetch: 0
+    spreadBlend: 0
+    swell: 0
+    peakEnhancement: 0
+    shortWavesFade: 0
+  spectrum4:
+    scale: 0
+    windSpeed: 0
+    windDirection: 0
+    fetch: 0
+    spreadBlend: 0
+    swell: 0
+    peakEnhancement: 0
+    shortWavesFade: 0
+  spectrum5:
+    scale: 0
+    windSpeed: 0
+    windDirection: 0
+    fetch: 0
+    spreadBlend: 0
+    swell: 0
+    peakEnhancement: 0
+    shortWavesFade: 0
+  spectrum6:
+    scale: 0
+    windSpeed: 0
+    windDirection: 0
+    fetch: 0
+    spreadBlend: 0
+    swell: 0
+    peakEnhancement: 0
+    shortWavesFade: 0
+  spectrum7:
+    scale: 0
+    windSpeed: 0
+    windDirection: 0
+    fetch: 0
+    spreadBlend: 0
+    swell: 0
+    peakEnhancement: 0
+    shortWavesFade: 0
 --- !u!4 &667346739
 Transform:
   m_ObjectHideFlags: 0

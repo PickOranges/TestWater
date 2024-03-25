@@ -3,11 +3,13 @@
 #define PI 3.14159265358979323846
 #define g 9.81
 
-RWTexture2D<float4> InitSpectrumTexture;
-float2 k;
+//RWTexture2D<float4> InitSpectrumTexture;  // Why not this one ??? What's the difference ??? array: an array of RWTexture2D, i.e. allow pass multiple texs. 
+                                            // Useful for terrain.
+RWTexture2DArray<float4> InitSpectrumTexture; 
+
 float D/* depth */;
 float L, LowCutoff, HighCutoff;
-uint M,N;
+uint N;
 
 struct SpectrumParameters { // passed from CPU to GPU, also user can adjust those params for 8 spectrums respectively.
 	float scale;
@@ -132,32 +134,34 @@ float ShortWavesFade(SpectrumParameters sp, float kLength) {
 [numthreads(8,8,1)]
 void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
 {
-    InitSpectrumTexture[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+    InitSpectrumTexture[uint3(id.xy,0)] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0); // something wrong with read back to CPU side ???
     return;
-    //uint seed=N*id.y + id.x + N;
 
-    //float halfN = N/2;  // we use a square spectrum, instead of rectangular.
-    //float dk=2*PI/L;  
-    //float2 k=(id.xy-halfN)*dk;
-    //float kLength=length(k); 
+    uint seed=N*id.y + id.x + N;
 
-    //float seed1= 0.0 + hash(seed) * 10;
-    //float seed2= 1.0 + hash(seed) * 10;
-    //float2 uniformSample=float2(hash(seed1), hash(seed2));
-    //float2 gauss=UniformToGaussian(uniformSample.x, uniformSample.y);
+    float halfN = N/2;  // we use a square spectrum, instead of rectangular.
+    float dk=2*PI/L;  
+    float2 k=(id.xy-halfN)*dk;
+    float kLength=length(k); 
 
-    //float theta = atan2(k.y, k.x);
-    //float tanhval = tanhvalue(kLength);
-    //float w=Frequency(kLength,tanhval);
-    //float dw=FrequencyDerivative(kLength, tanhval, w);
+    float seed1= 0.0 + hash(seed) * 10;
+    float seed2= 1.0 + hash(seed) * 10;
+    float2 uniformSample=float2(hash(seed1), hash(seed2));
+    float2 gauss=UniformToGaussian(uniformSample.x, uniformSample.y);
+
+    float theta = atan2(k.y, k.x);
+    float tanhval = tanhvalue(kLength);
+    float w=Frequency(kLength,tanhval);
+    float dw=FrequencyDerivative(kLength, tanhval, w);
 
 
-    //if(kLength<LowCutoff || kLength>HighCutoff){
-    //    InitSpectrumTexture[id.xy]=0.0;
-    //}
-    //else{
-    //    float spectrum = TMA_phi(w) * JONSWAP(Sps[0],w) * finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
-    //    InitSpectrumTexture[id.xy]=float4(gauss * sqrt(2*spectrum * dw / kLength * dk *dk), 0.0, 0.0);
-    //}
+    if(kLength<LowCutoff || kLength>HighCutoff){
+        InitSpectrumTexture[uint3(id.xy,0)]=float4(0,0,1,0);
+    }
+    else{
+        float spectrum = TMA_phi(w) * JONSWAP(Sps[0],w) * finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
+        InitSpectrumTexture[uint3(id.xy,0)]=float4(gauss * sqrt(2*spectrum * abs(dw) / kLength * dk *dk), 0.0, 0.0); 
+        InitSpectrumTexture[uint3(id.xy,0)]=float4(0,1,0,0);
+    }
 }
 
