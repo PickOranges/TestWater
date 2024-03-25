@@ -15,10 +15,44 @@ public class TestScript : MonoBehaviour
     int[] tris;
     Vector3[] normals;
 
+
+    public struct SpectrumSettings
+    {
+        public float scale;
+        public float angle;
+        public float spreadBlend;
+        public float swell;
+        public float alpha;
+        public float peakOmega;
+        public float gamma;
+        public float shortWavesFade;
+        // new
+        public float windSpeed;
+    }
+    SpectrumSettings[] spectrums = new SpectrumSettings[8];
+
+    [System.Serializable]
+    public struct DisplaySpectrumSettings
+    {
+        [Range(0, 5)]
+        public float scale;
+        public float windSpeed;
+        [Range(0.0f, 360.0f)]
+        public float windDirection;
+        public float fetch;
+        [Range(0, 1)]
+        public float spreadBlend;
+        [Range(0, 1)]
+        public float swell;
+        public float peakEnhancement;
+        public float shortWavesFade;
+    }
+
+
     private void Start()
     {
         InitRenderTexture();
-        waterFFTShader.SetTexture(0, "Result", _target);
+        waterFFTShader.SetTexture(0, "InitSpectrumTexture", _target);
         _camera = Camera.main;
 
         //CreatePlane();
@@ -117,5 +151,32 @@ public class TestScript : MonoBehaviour
         material = new Material(waterRenderingShader);
 
         GetComponent<MeshRenderer>().material = material;
+    }
+
+    void FillSpectrumStruct(DisplaySpectrumSettings displaySettings, ref SpectrumSettings computeSettings)
+    {
+        computeSettings.scale = displaySettings.scale;
+        computeSettings.angle = displaySettings.windDirection / 180 * Mathf.PI;
+        computeSettings.spreadBlend = displaySettings.spreadBlend;
+        computeSettings.swell = Mathf.Clamp(displaySettings.swell, 0.01f, 1);
+        computeSettings.alpha = JonswapAlpha(displaySettings.fetch, displaySettings.windSpeed);
+        computeSettings.peakOmega = JonswapPeakFrequency(displaySettings.fetch, displaySettings.windSpeed);
+        computeSettings.gamma = displaySettings.peakEnhancement;
+        computeSettings.shortWavesFade = displaySettings.shortWavesFade;
+    }
+
+    void SetSpectrumBuffers()
+    {
+        FillSpectrumStruct(spectrum1, ref spectrums[0]);
+        FillSpectrumStruct(spectrum2, ref spectrums[1]);
+        FillSpectrumStruct(spectrum3, ref spectrums[2]);
+        FillSpectrumStruct(spectrum4, ref spectrums[3]);
+        FillSpectrumStruct(spectrum5, ref spectrums[4]);
+        FillSpectrumStruct(spectrum6, ref spectrums[5]);
+        FillSpectrumStruct(spectrum7, ref spectrums[6]);
+        FillSpectrumStruct(spectrum8, ref spectrums[7]);
+
+        spectrumBuffer.SetData(spectrums);
+        fftComputeShader.SetBuffer(0, "_Spectrums", spectrumBuffer);
     }
 }
