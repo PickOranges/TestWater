@@ -18,7 +18,6 @@ struct SpectrumParameters { // passed from CPU to GPU, also user can adjust thos
 	float peakOmega;
 	float gamma;
 	float shortWavesFade;
-    // new
     float windSpeed;
 };
 
@@ -133,31 +132,32 @@ float ShortWavesFade(SpectrumParameters sp, float kLength) {
 [numthreads(8,8,1)]
 void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
 {
-    //InitSpectrumTexture[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
-    uint seed=N*id.y + id.x + N;
+    InitSpectrumTexture[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+    return;
+    //uint seed=N*id.y + id.x + N;
 
-    float halfN = N/2;  // we use a square spectrum, instead of rectangular.
-    float dk=2*PI/L;  
-    float2 k=(id.xy-halfN)*dk;
-    float kLength=length(k); 
+    //float halfN = N/2;  // we use a square spectrum, instead of rectangular.
+    //float dk=2*PI/L;  
+    //float2 k=(id.xy-halfN)*dk;
+    //float kLength=length(k); 
 
-    float seed1= 0.0 + hash(seed) * 10;
-    float seed2= 1.0 + hash(seed) * 10;
-    float2 uniformSample=float2(hash(seed1), hash(seed2));
-    float2 gauss=UniformToGaussian(uniformSample.x, uniformSample.y);
+    //float seed1= 0.0 + hash(seed) * 10;
+    //float seed2= 1.0 + hash(seed) * 10;
+    //float2 uniformSample=float2(hash(seed1), hash(seed2));
+    //float2 gauss=UniformToGaussian(uniformSample.x, uniformSample.y);
 
-    float theta = atan2(k.y, k.x);
-    float tanhval = tanhvalue(kLength);
-    float w=Frequency(kLength,tanhval);
-    float dw=FrequencyDerivative(kLength, tanhval, w);
+    //float theta = atan2(k.y, k.x);
+    //float tanhval = tanhvalue(kLength);
+    //float w=Frequency(kLength,tanhval);
+    //float dw=FrequencyDerivative(kLength, tanhval, w);
 
 
-    if(kLength<LowCutoff || kLength>HighCutoff){
-        InitSpectrumTexture[id.xy]=0.0;
-    }
-    else{
-        float spectrum = TMA_phi(w) * JONSWAP(Sps[0],w) * finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
-        InitSpectrumTexture[id.xy]=float4(gauss * sqrt(2*spectrum * dw / kLength * dk *dk), 0.0, 0.0);
-    }
+    //if(kLength<LowCutoff || kLength>HighCutoff){
+    //    InitSpectrumTexture[id.xy]=0.0;
+    //}
+    //else{
+    //    float spectrum = TMA_phi(w) * JONSWAP(Sps[0],w) * finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
+    //    InitSpectrumTexture[id.xy]=float4(gauss * sqrt(2*spectrum * dw / kLength * dk *dk), 0.0, 0.0);
+    //}
 }
 

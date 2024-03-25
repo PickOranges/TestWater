@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using static UnityEditor.Searcher.SearcherWindow.Alignment;
 
+
 public class TestScript : MonoBehaviour
 {
     public ComputeShader waterFFTShader;
@@ -14,7 +15,8 @@ public class TestScript : MonoBehaviour
     Vector3[] verts;
     int[] tris;
     Vector3[] normals;
-
+    float g = 9.81f;
+    ComputeBuffer spectrumParamsBuffer;
 
     public struct SpectrumSettings
     {
@@ -26,8 +28,7 @@ public class TestScript : MonoBehaviour
         public float peakOmega;
         public float gamma;
         public float shortWavesFade;
-        // new
-        public float windSpeed;
+        public float windSpeed; // new
     }
     SpectrumSettings[] spectrums = new SpectrumSettings[8];
 
@@ -48,12 +49,32 @@ public class TestScript : MonoBehaviour
         public float shortWavesFade;
     }
 
+    [SerializeField]
+    public DisplaySpectrumSettings spectrum0;
+    [SerializeField]
+    public DisplaySpectrumSettings spectrum1;
+    [SerializeField]
+    public DisplaySpectrumSettings spectrum2;
+    [SerializeField]
+    public DisplaySpectrumSettings spectrum3;
+    [SerializeField]
+    public DisplaySpectrumSettings spectrum4;
+    [SerializeField]
+    public DisplaySpectrumSettings spectrum5;
+    [SerializeField]
+    public DisplaySpectrumSettings spectrum6;
+    [SerializeField]
+    public DisplaySpectrumSettings spectrum7;
+
 
     private void Start()
     {
         InitRenderTexture();
+
         waterFFTShader.SetTexture(0, "InitSpectrumTexture", _target);
         _camera = Camera.main;
+        spectrumParamsBuffer = new ComputeBuffer(8, 9*sizeof(float));
+        SetSpectrumBuffers();
 
         //CreatePlane();
         //CreateMaterial();
@@ -88,9 +109,11 @@ public class TestScript : MonoBehaviour
         Graphics.Blit(_target, camera.targetTexture);
     }
 
+    // Q: which one/what kind of data types should be released explicitly ???
     private void OnDestroy()
     {
         RenderPipelineManager.endCameraRendering -= OnEndCameraRendering;
+        spectrumParamsBuffer.Release();
     }
 
     void CreatePlane()
@@ -153,6 +176,16 @@ public class TestScript : MonoBehaviour
         GetComponent<MeshRenderer>().material = material;
     }
 
+    float JonswapAlpha(float fetch, float windSpeed)
+    {
+        return 0.076f * Mathf.Pow(g * fetch / (windSpeed * windSpeed), -0.22f);
+    }
+
+    float JonswapPeakFrequency(float fetch, float windSpeed)
+    {
+        return 22 * Mathf.Pow(windSpeed * fetch / (g * g), -0.33f);
+    }
+
     void FillSpectrumStruct(DisplaySpectrumSettings displaySettings, ref SpectrumSettings computeSettings)
     {
         computeSettings.scale = displaySettings.scale;
@@ -163,20 +196,23 @@ public class TestScript : MonoBehaviour
         computeSettings.peakOmega = JonswapPeakFrequency(displaySettings.fetch, displaySettings.windSpeed);
         computeSettings.gamma = displaySettings.peakEnhancement;
         computeSettings.shortWavesFade = displaySettings.shortWavesFade;
+
+        // new
+        computeSettings.windSpeed = displaySettings.windSpeed;
     }
 
     void SetSpectrumBuffers()
     {
-        FillSpectrumStruct(spectrum1, ref spectrums[0]);
-        FillSpectrumStruct(spectrum2, ref spectrums[1]);
-        FillSpectrumStruct(spectrum3, ref spectrums[2]);
-        FillSpectrumStruct(spectrum4, ref spectrums[3]);
-        FillSpectrumStruct(spectrum5, ref spectrums[4]);
-        FillSpectrumStruct(spectrum6, ref spectrums[5]);
-        FillSpectrumStruct(spectrum7, ref spectrums[6]);
-        FillSpectrumStruct(spectrum8, ref spectrums[7]);
+        FillSpectrumStruct(spectrum0, ref spectrums[0]);
+        FillSpectrumStruct(spectrum1, ref spectrums[1]);
+        FillSpectrumStruct(spectrum2, ref spectrums[2]);
+        FillSpectrumStruct(spectrum3, ref spectrums[3]);
+        FillSpectrumStruct(spectrum4, ref spectrums[4]);
+        FillSpectrumStruct(spectrum5, ref spectrums[5]);
+        FillSpectrumStruct(spectrum6, ref spectrums[6]);
+        FillSpectrumStruct(spectrum7, ref spectrums[7]);
 
-        spectrumBuffer.SetData(spectrums);
-        fftComputeShader.SetBuffer(0, "_Spectrums", spectrumBuffer);
+        spectrumParamsBuffer.SetData(spectrums);
+        waterFFTShader.SetBuffer(0, "Sps", spectrumParamsBuffer);
     }
 }
