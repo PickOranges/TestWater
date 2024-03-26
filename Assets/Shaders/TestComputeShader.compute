@@ -1,10 +1,12 @@
 #pragma kernel CS_InitSpectrum
+#pragma kernel CS_PackSpectrumConjugate
 
 #define PI 3.14159265358979323846
 #define g 9.81
 
-RWTexture2D<float4> InitSpectrumTexture;  // Why not this one ??? What's the difference ??? array: an array of RWTexture2D, i.e. allow pass multiple texs. 
-                                            // Useful for terrain.
+RWTexture2D<float4> InitSpectrumTexture;  // Why not this one ? What's the difference ?
+                                          // RWTexture2DArray: an array of RWTexture2D, i.e. allow pass multiple texs. 
+                                          // Useful for terrain.
 //RWTexture2DArray<float4> InitSpectrumTexture; 
 
 float D/* depth */;
@@ -127,21 +129,9 @@ float ShortWavesFade(SpectrumParameters sp, float kLength) {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//[numthreads(8,8,1)]
-//void CSMain (uint3 id : SV_DispatchThreadID)
-//{
-    
-
-//    Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
-//}
-
-[numthreads(8,8,1)]
+[numthreads(8,8,1)] 
 void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
 {
-    //InitSpectrumTexture[uint3(id.xy,0)] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0); // something wrong with read back to CPU side ???
-    //InitSpectrumTexture[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0); // something wrong with read back to CPU side ???
-    //return;
-
     uint seed=N*id.y + id.x + N;
 
     float halfN = N/2;  // we use a square spectrum, instead of rectangular.
@@ -173,3 +163,11 @@ void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
     }
 }
 
+[numthreads(8,8,1)]
+void CS_PackSpectrumConjugate(uint3 id : SV_DISPATCHTHREADID) {
+    //for (uint i = 0; i < 4; ++i) {
+        float2 h0 = InitSpectrumTexture[id.xy].rg;
+        float2 h0conj = InitSpectrumTexture[uint2((N - id.x ) % N, (N - id.y) % N)].rg;  
+        InitSpectrumTexture[id.xy] = float4(h0, h0conj.x, -h0conj.y); 
+    //}
+}
