@@ -1,17 +1,30 @@
 #pragma kernel CS_InitSpectrum
 #pragma kernel CS_PackSpectrumConjugate
+#pragma kernel CS_HorizontalFFT
+#pragma kernel CS_VerticalFFT
+#pragma kernel CS_UpdateSpectrumForFFT
 
 #define PI 3.14159265358979323846
+#define PI2 6.28318530718
 #define g 9.81
 
-RWTexture2D<float4> InitSpectrumTexture;  // Why not this one ? What's the difference ?
-                                          // RWTexture2DArray: an array of RWTexture2D, i.e. allow pass multiple texs. 
-                                          // Useful for terrain.
+#define SIZE 1024
+#define LOG_SIZE 10
+
 //RWTexture2DArray<float4> InitSpectrumTexture; 
+RWTexture2D<float4> InitSpectrumTexture, SpectrumTexture, DisplacementTexture;
+RWTexture2D<float2> SlopeTexture;
+                                         
+RWTexture2D<float4> ButterflyTexture; // N*log2N
+RWTexture2D<float4> IFFTResult;
+groupshared float4 fftGroupBuffer[2][SIZE]; // 0: tmp  
 
 float D/* depth */;
 float L, _LowCutoff, _HighCutoff;
+float _RepeatTime, _FrameTime;
+float2 _Lambda;
 uint N;
+
 
 struct SpectrumParameters { // passed from CPU to GPU, also user can adjust those params for 8 spectrums respectively.
 	float scale;
@@ -129,6 +142,20 @@ float ShortWavesFade(SpectrumParameters sp, float kLength) {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+float2 ComplexMult(float2 a, float2 b) {
+    return float2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
+}
+
+// recap: exp(a+ib)=exp(a)*exp(ib) = exp(a) * (cos(b) + i*sin(b))
+float2 ComplexExp(float2 a)
+{
+	return float2(cos(a.y), sin(a.y)) * exp(a.x);
+}
+
+float2 EulerFormula(float x) {
+    return float2(cos(x), sin(x));
+}
+
 [numthreads(8,8,1)] 
 void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
 {
@@ -171,3 +198,125 @@ void CS_PackSpectrumConjugate(uint3 id : SV_DISPATCHTHREADID) {
         InitSpectrumTexture[id.xy] = float4(h0, h0conj.x, -h0conj.y); 
     //}
 }
+
+void TwiddleFactorAndInputIndices(uint x/* stage-1 */, uint y/* input index */, out uint2 indices/* i, i+b */, out float2 twiddle){
+    uint b = N>>(x+1);
+    uint i = (2 * b * (y / b) + y % b) % N;
+    float2 mult = PI2 * float2(0,1)/N;
+	twiddle = ComplexExp(-mult * ((y / b) * b));
+	ButterflyTexture[uint2(x,y)] = float4(twiddle.x, twiddle.y, i, i + b);
+	ButterflyTexture[uint2(x, y + N / 2)] = float4(-twiddle.x, -twiddle.y, i, i + b);
+}
+
+void ButterflyValues(uint step, uint index, out uint2 indices, out float2 twiddle) {
+    const float twoPi = 6.28318530718;
+    uint b = SIZE >> (step + 1);        
+                                      
+    uint w = b * (index / b);  
+                               
+    uint i = (w + index) % SIZE; 
+    sincos(-twoPi / SIZE * w, twiddle.y, twiddle.x);    
+
+    twiddle.y = -twiddle.y; 
+    indices = uint2(i, i + b);      
+}
+
+float4 FFT(uint threadIndex, float4 input){
+    fftGroupBuffer[0][threadIndex] = input; 
+    GroupMemoryBarrierWithGroupSync();  
+    bool flag = false;
+
+    [unroll]
+    for (uint step = 0; step < LOG_SIZE; ++step) {  
+        uint2 inputsIndices;  
+        float2 twiddle;
+        ButterflyValues(step, threadIndex, inputsIndices, twiddle);
+
+        float4 v = fftGroupBuffer[flag][inputsIndices.y];  
+        fftGroupBuffer[!flag][threadIndex] = fftGroupBuffer[flag][inputsIndices.x] + float4(ComplexMult(twiddle, v.xy), ComplexMult(twiddle, v.zw));
+
+        flag = !flag;  
+        GroupMemoryBarrierWithGroupSync();
+    }
+
+    return fftGroupBuffer[flag][threadIndex];
+}
+
+[numthreads(SIZE, 1, 1)]  // N*1, id.x=0...N-1, id.y=const.
+void CS_HorizontalFFT(uint3 id : SV_DISPATCHTHREADID) {
+    IFFTResult[id.xy] = FFT(id.x, IFFTResult[id.xy]);  
+}
+
+[numthreads(SIZE, 1, 1)]  // 1*N, id.y=0...N-1, id.x=const.
+void CS_VerticalFFT(uint3 id : SV_DISPATCHTHREADID) {
+    IFFTResult[id.yx] = FFT(id.x, IFFTResult[id.yx]);
+}
+
+[numthreads(8, 8, 1)] 
+void CS_UpdateSpectrumForFFT(uint3 id : SV_DISPATCHTHREADID) {
+        float4 initialSignal = InitSpectrumTexture[id.xy];
+        float2 h0 = initialSignal.xy;
+        float2 h0conj = initialSignal.zw;
+
+        float halfN = N / 2.0f;
+        float2 K = (id.xy - halfN) * 2.0f * PI / L;  
+        float kMag = length(K);
+        float kMagRcp = rcp(kMag);  
+
+        if (kMag < 0.0001f) {
+            kMagRcp = 1.0f;
+        }
+
+        float w_0 = 2.0f * PI / _RepeatTime;    
+        float dispersion = floor(sqrt(g * kMag) / w_0) * w_0 * _FrameTime;
+        float2 exponent = EulerFormula(dispersion);
+
+        float2 htilde = ComplexMult(h0, exponent) + ComplexMult(h0conj, float2(exponent.x, -exponent.y));
+        float2 ih = float2(-htilde.y, htilde.x);
+
+        // P i.e. height map, Tessendorf paper formula (44)
+        float2 displacementX = ih * K.x * kMagRcp;  // similar to Gerstner Wave formula, x is perpendicular to y, and * x/k. 
+                                                    // (see catlike water tutorial 3) P = ...
+                                                    // Because Gerstner Wave is just one special case of this spectrum function.
+        float2 displacementY = htilde;
+        float2 displacementZ = ih * K.y * kMagRcp;  // reason is the same as x
+
+        // T i.e. Tangent
+        float2 displacementX_dx = -htilde * K.x * K.x * kMagRcp; // (same as above)see catlike T=..., also check the formula inside the shader code
+        float2 displacementY_dx = ih * K.x;                      // same as above
+        float2 displacementZ_dx = -htilde * K.x * K.y * kMagRcp; // same as above
+
+        // B i.e. Bitangent or Binormal
+        // float2 displacementX_dz = -htilde * K.x * K.y * kMagRcp; // this is the same as displacementZ_dx, thus dont have to re-calculate.
+        float2 displacementY_dz = ih * K.y;      
+        float2 displacementZ_dz = -htilde * K.y * K.y * kMagRcp;
+
+        float2 htildeDisplacementX = float2(displacementX.x - displacementZ.y, displacementX.y + displacementZ.x);       // Dx_Dz[id.xy]
+        float2 htildeDisplacementZ = float2(displacementY.x - displacementZ_dx.y, displacementY.y + displacementZ_dx.x); // Dy_Dxz[id.xy]
+        
+        float2 htildeSlopeX = float2(displacementY_dx.x - displacementY_dz.y, displacementY_dx.y + displacementY_dz.x); // Dyx_Dyz[id.xy]
+        float2 htildeSlopeZ = float2(displacementX_dx.x - displacementZ_dz.y, displacementX_dx.y + displacementZ_dz.x); // Dxx_Dzz[id.xy]
+
+        SpectrumTexture[id.xy] = float4(htildeDisplacementX, htildeDisplacementZ);
+        SpectrumTexture[id.xy] = float4(htildeSlopeX, htildeSlopeZ);
+}
+
+[numthreads(8, 8, 1)]
+void CS_AssembleMaps(uint3 id : SV_DISPATCHTHREADID) {
+    float4 htildeDisplacement = SpectrumTexture[id.xy];  
+    float4 htildeSlope = SpectrumTexture[id.xy]; 
+
+    float2 dxdz = htildeDisplacement.rg;
+    float2 dydxz = htildeDisplacement.ba;
+    float2 dyxdyz = htildeSlope.rg;
+    float2 dxxdzz = htildeSlope.ba;
+        
+    float jacobian = (1.0f + _Lambda.x * dxxdzz.x) * (1.0f + _Lambda.y * dxxdzz.y) - _Lambda.x * _Lambda.y * dydxz.y * dydxz.y;
+    float3 displacement = float3(_Lambda.x * dxdz.x, dydxz.x, _Lambda.y * dxdz.y);
+    float2 slopes = dyxdyz.xy / (1 + abs(dxxdzz * _Lambda));
+    float covariance = slopes.x * slopes.y;
+
+    DisplacementTexture[id.xy] = float4(displacement, 0.0);
+    SlopeTexture[id.xy] = float2(slopes);
+}
+
