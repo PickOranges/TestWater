@@ -1,8 +1,9 @@
 #pragma kernel CS_InitSpectrum
 #pragma kernel CS_PackSpectrumConjugate
+#pragma kernel CS_UpdateSpectrumForFFT
 #pragma kernel CS_HorizontalFFT
 #pragma kernel CS_VerticalFFT
-#pragma kernel CS_UpdateSpectrumForFFT
+#pragma kernel CS_AssembleMaps
 
 #define PI 3.14159265358979323846
 #define PI2 6.28318530718

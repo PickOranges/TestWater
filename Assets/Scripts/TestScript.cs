@@ -1,8 +1,6 @@
 using System;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Rendering;
-using static UnityEditor.Searcher.SearcherWindow.Alignment;
 
 
 public class TestScript : MonoBehaviour
@@ -11,6 +9,9 @@ public class TestScript : MonoBehaviour
     public Shader waterRenderingShader;
     Camera _camera;  // ??? never read
     public RenderTexture _target;
+    public RenderTexture _bufferfly, _ifftResult;
+    public RenderTexture _initSpectrum, _spectrum, _displacement, _slope; 
+
     Mesh mesh;
     Material material;
     Vector3[] verts;
@@ -97,33 +98,6 @@ public class TestScript : MonoBehaviour
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-    private void Start()
-    {
-        N = 1024;
-        logN = (int)Mathf.Log(N, 2.0f);
-        threadGroupsX = Mathf.CeilToInt(N / 8.0f);
-        threadGroupsY = Mathf.CeilToInt(N / 8.0f);
-
-
-        // 1. Create Textures
-        //_target = CreateRenderTex(N, N, 4, RenderTextureFormat.ARGBHalf, true);
-        InitRenderTexture();
-
-
-        // 2. Set data
-        waterFFTShader.SetTexture(0, "InitSpectrumTexture", _target);
-        _camera = Camera.main;
-        spectrumParamsBuffer = new ComputeBuffer(9, 9*sizeof(float));
-        SetSpectrumBuffers();
-        SetFFTUniforms();
-
-        // 3. Dispatch
-        waterFFTShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
-
-        // 4. Render Pipeline
-        //CreatePlane();
-        //CreateMaterial();
-    }
     void InitRenderTexture()
     {
         if (!_target || _target.width != Screen.width || _target.height != Screen.height)
@@ -135,10 +109,24 @@ public class TestScript : MonoBehaviour
             _target.Create();
         }
     }
+    // single texture
+    RenderTexture CreateRenderTex(int width, int height, RenderTextureFormat format, bool useMips)
+    {
+        RenderTexture rt = new RenderTexture(width, height, 0, format, RenderTextureReadWrite.Linear);
+        rt.filterMode = FilterMode.Bilinear;
+        rt.wrapMode = TextureWrapMode.Repeat;
+        rt.enableRandomWrite = true;
+        rt.useMipMap = useMips;
+        rt.autoGenerateMips = false;
+        rt.anisoLevel = 16;
+        rt.Create();
 
+        return rt;
+    }
+
+    // texture array
     RenderTexture CreateRenderTex(int width, int height, int depth, RenderTextureFormat format, bool useMips)
     {
-        if (_target != null) _target.Release();
         RenderTexture rt = new RenderTexture(width, height, 0, format, RenderTextureReadWrite.Linear);
         rt.dimension = UnityEngine.Rendering.TextureDimension.Tex2DArray; 
         rt.filterMode = FilterMode.Bilinear;
@@ -151,10 +139,7 @@ public class TestScript : MonoBehaviour
         rt.Create();
         return rt;
     }
-    private void Update()
-    {
-        RenderPipelineManager.endCameraRendering += OnEndCameraRendering;
-    }
+
    
     void OnEndCameraRendering(ScriptableRenderContext context, Camera camera)
     {
@@ -276,10 +261,10 @@ public class TestScript : MonoBehaviour
 
     void SetFFTUniforms()
     {
-        waterFFTShader.SetVector("L", lambda);     
-        //waterFFTShader.SetFloat("_FrameTime", Time.time * speed);
+        waterFFTShader.SetVector("L", lambda);
+        waterFFTShader.SetFloat("_FrameTime", Time.time * speed);
         //waterFFTShader.SetFloat("_DeltaTime", Time.deltaTime);
-        //waterFFTShader.SetFloat("_RepeatTime", repeatTime);
+        waterFFTShader.SetFloat("_RepeatTime", repeatTime);
         waterFFTShader.SetInt("N", N);
         waterFFTShader.SetFloat("D", depth);
         waterFFTShader.SetFloat("_LowCutoff", lowCutoff);
@@ -298,5 +283,82 @@ public class TestScript : MonoBehaviour
         //waterFFTShader.SetFloat("_FoamDecayRate", foamDecayRate);
         //waterFFTShader.SetFloat("_FoamThreshold", foamThreshold);
         //waterFFTShader.SetFloat("_FoamAdd", foamAdd);
+    }
+
+    void InverseFFT(RenderTexture spectrumTexture)
+    {
+        waterFFTShader.SetTexture(3, "IFFTResult", spectrumTexture);
+        waterFFTShader.Dispatch(3, 1, N, 1);
+        waterFFTShader.SetTexture(4, "IFFTResult", spectrumTexture);
+        waterFFTShader.Dispatch(4, 1, N, 1);
+    }
+
+    private void Start()
+    {
+        N = 1024;
+        logN = (int)Mathf.Log(N, 2.0f);
+        threadGroupsX = Mathf.CeilToInt(N / 8.0f);
+        threadGroupsY = Mathf.CeilToInt(N / 8.0f);
+
+
+        // 1. Create Textures
+        //_target = CreateRenderTex(N, N, 4, RenderTextureFormat.ARGBHalf, true);
+        InitRenderTexture();
+
+
+        // 2. Set data
+        waterFFTShader.SetTexture(0, "InitSpectrumTexture", _target);  // replace with _init later
+        waterFFTShader.SetTexture(1, "InitSpectrumTexture", _target);
+        _camera = Camera.main;
+        spectrumParamsBuffer = new ComputeBuffer(8, 9 * sizeof(float));
+
+        _displacement = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);
+        _slope = CreateRenderTex(N, N, RenderTextureFormat.RGHalf, true);
+        _spectrum = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);
+
+        SetSpectrumBuffers();
+        SetFFTUniforms();
+
+        // 3. Dispatch
+        waterFFTShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
+        waterFFTShader.Dispatch(1, threadGroupsX, threadGroupsY, 1);
+
+        // 4. Render Pipeline
+        CreatePlane();
+        CreateMaterial();
+    }
+
+    private void Update()
+    {
+        RenderPipelineManager.endCameraRendering += OnEndCameraRendering;
+
+        if (updateSpectrum)
+        {
+            SetSpectrumBuffers();
+            waterFFTShader.SetTexture(0, "InitSpectrumTexture", _target);
+            waterFFTShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
+            waterFFTShader.SetTexture(1, "InitSpectrumTexture", _target);
+            waterFFTShader.Dispatch(1, threadGroupsX, threadGroupsY, 1);
+        }
+
+        // Progress Spectrum For FFT
+        waterFFTShader.SetTexture(2, "InitSpectrumTexture", _target);
+        waterFFTShader.SetTexture(2, "SpectrumTexture", _spectrum);
+        waterFFTShader.Dispatch(2, threadGroupsX, threadGroupsY, 1);
+
+        // Compute FFT For Height
+        InverseFFT(_spectrum);
+
+        // Assemble maps
+        waterFFTShader.SetTexture(5, "DisplacementTexture", _displacement);
+        waterFFTShader.SetTexture(5, "SpectrumTexture", _spectrum);
+        waterFFTShader.SetTexture(5, "SlopeTexture", _slope);
+        waterFFTShader.Dispatch(5, threadGroupsX, threadGroupsY, 1);
+
+        _displacement.GenerateMips();
+        _slope.GenerateMips();
+
+        material.SetTexture("DisplacementTexture", _displacement);
+        material.SetTexture("SlopeTexture", _slope);
     }
 }
