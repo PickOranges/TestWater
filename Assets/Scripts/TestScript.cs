@@ -300,14 +300,12 @@ public class TestScript : MonoBehaviour
         threadGroupsX = Mathf.CeilToInt(N / 8.0f);
         threadGroupsY = Mathf.CeilToInt(N / 8.0f);
 
-
         // 1. Create Textures
-        //_target = CreateRenderTex(N, N, 4, RenderTextureFormat.ARGBHalf, true);
+        //_target = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);  // Why visualization different?
         InitRenderTexture();
 
-
         // 2. Set data
-        waterFFTShader.SetTexture(0, "InitSpectrumTexture", _target);  // replace with _init later
+        waterFFTShader.SetTexture(0, "InitSpectrumTexture", _target); 
         waterFFTShader.SetTexture(1, "InitSpectrumTexture", _target);
         _camera = Camera.main;
         spectrumParamsBuffer = new ComputeBuffer(8, 9 * sizeof(float));
