@@ -96,17 +96,17 @@ public class TestScript : MonoBehaviour
     [SerializeField]
     public DisplaySpectrumSettings spectrum7;
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    
 
-
-    void InitRenderTexture()
+    void InitRenderTexture(RenderTexture rt)
     {
-        if (!_target || _target.width != Screen.width || _target.height != Screen.height)
+        if (!rt || rt.width != Screen.width || rt.height != Screen.height)
         {
-            if (_target) _target.Release();
-            _target = new RenderTexture(Screen.width, Screen.height, 0,
+            if (rt) rt.Release();
+            rt = new RenderTexture(Screen.width, Screen.height, 0,
                 RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
-            _target.enableRandomWrite = true;
-            _target.Create();
+            rt.enableRandomWrite = true;
+            rt.Create();
         }
     }
     // single texture
@@ -120,7 +120,6 @@ public class TestScript : MonoBehaviour
         rt.autoGenerateMips = false;
         rt.anisoLevel = 16;
         rt.Create();
-
         return rt;
     }
 
@@ -140,19 +139,7 @@ public class TestScript : MonoBehaviour
         return rt;
     }
 
-   
-    void OnEndCameraRendering(ScriptableRenderContext context, Camera camera)
-    {
-        if (!_target)
-        {
-            //Debug.Log("RenderTexture is empty.");
-            return;
-        }
-        Graphics.Blit(_target, camera.targetTexture);
-        //Graphics.CopyTexture(_target, camera.targetTexture);
-    }
-
-    // Q: which one/what kind of data types should be released explicitly ???
+    // ??? which one/what kind of data types should be released explicitly
     private void OnDestroy()
     {
         RenderPipelineManager.endCameraRendering -= OnEndCameraRendering;
@@ -293,6 +280,23 @@ public class TestScript : MonoBehaviour
         waterFFTShader.Dispatch(4, 1, N, 1);
     }
 
+
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    void OnEndCameraRendering(ScriptableRenderContext context, Camera camera)
+    {
+        //if (!_target)
+        //{
+        //    Debug.Log("RenderTexture is empty.");
+        //    return;
+        //}
+        //Graphics.Blit(_target, camera.targetTexture);
+        //Graphics.CopyTexture(_target, camera.targetTexture);
+
+        if (!_initSpectrum) return;
+        Graphics.Blit(_initSpectrum, camera.targetTexture);
+    }
+
     private void Start()
     {
         N = 1024;
@@ -301,12 +305,13 @@ public class TestScript : MonoBehaviour
         threadGroupsY = Mathf.CeilToInt(N / 8.0f);
 
         // 1. Create Textures
-        //_target = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);  // Why visualization different?
-        InitRenderTexture();
+        //_target = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);  // ??? Why visualization different ??? Cuz the RenderTexture has different size ???
+        //InitRenderTexture(_initSpectrum);
+        _initSpectrum = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);
 
         // 2. Set data
-        waterFFTShader.SetTexture(0, "InitSpectrumTexture", _target); 
-        waterFFTShader.SetTexture(1, "InitSpectrumTexture", _target);
+        waterFFTShader.SetTexture(0, "InitSpectrumTexture", _initSpectrum); 
+        waterFFTShader.SetTexture(1, "InitSpectrumTexture", _initSpectrum);
         _camera = Camera.main;
         spectrumParamsBuffer = new ComputeBuffer(8, 9 * sizeof(float));
 
@@ -333,14 +338,14 @@ public class TestScript : MonoBehaviour
         if (updateSpectrum)
         {
             SetSpectrumBuffers();
-            waterFFTShader.SetTexture(0, "InitSpectrumTexture", _target);
+            waterFFTShader.SetTexture(0, "InitSpectrumTexture", _initSpectrum);
             waterFFTShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
-            waterFFTShader.SetTexture(1, "InitSpectrumTexture", _target);
+            waterFFTShader.SetTexture(1, "InitSpectrumTexture", _initSpectrum);
             waterFFTShader.Dispatch(1, threadGroupsX, threadGroupsY, 1);
         }
 
         // Progress Spectrum For FFT
-        waterFFTShader.SetTexture(2, "InitSpectrumTexture", _target);
+        waterFFTShader.SetTexture(2, "InitSpectrumTexture", _initSpectrum);
         waterFFTShader.SetTexture(2, "SpectrumTexture", _spectrum);
         waterFFTShader.Dispatch(2, threadGroupsX, threadGroupsY, 1);
 
