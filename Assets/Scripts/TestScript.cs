@@ -7,6 +7,7 @@ public class TestScript : MonoBehaviour
 {
     public ComputeShader waterFFTShader;
     public Shader waterRenderingShader;
+    
     Camera _camera;  // ??? never read
     public RenderTexture _target;
     public RenderTexture _bufferfly, _ifftResult;
@@ -32,9 +33,8 @@ public class TestScript : MonoBehaviour
         public float peakOmega;
         public float gamma;
         public float shortWavesFade;
-
         // new
-        public float windSpeed; 
+        public float windSpeed;
     }
     SpectrumSettings[] spectrums = new SpectrumSettings[8];
 
@@ -244,14 +244,18 @@ public class TestScript : MonoBehaviour
 
         spectrumParamsBuffer.SetData(spectrums);
         waterFFTShader.SetBuffer(0, "Sps", spectrumParamsBuffer);
+        //waterFFTShader.SetBuffer(0, "_Spectrums", spectrumParamsBuffer);
     }
 
     void SetFFTUniforms()
     {
+        //waterFFTShader.SetVector("_Lambda", lambda);
         waterFFTShader.SetVector("L", lambda);
         waterFFTShader.SetFloat("_FrameTime", Time.time * speed);
         //waterFFTShader.SetFloat("_DeltaTime", Time.deltaTime);
-        waterFFTShader.SetFloat("_RepeatTime", repeatTime);
+        //waterFFTShader.SetFloat("_RepeatTime", repeatTime);
+        //waterFFTShader.SetInt("_N", N);
+        //waterFFTShader.SetFloat("_Depth", depth);
         waterFFTShader.SetInt("N", N);
         waterFFTShader.SetFloat("D", depth);
         waterFFTShader.SetFloat("_LowCutoff", lowCutoff);
@@ -310,10 +314,11 @@ public class TestScript : MonoBehaviour
         _initSpectrum = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);
 
         // 2. Set data
-        waterFFTShader.SetTexture(0, "InitSpectrumTexture", _initSpectrum); 
+        waterFFTShader.SetTexture(0, "InitSpectrumTexture", _initSpectrum);
         waterFFTShader.SetTexture(1, "InitSpectrumTexture", _initSpectrum);
         _camera = Camera.main;
         spectrumParamsBuffer = new ComputeBuffer(8, 9 * sizeof(float));
+        //spectrumParamsBuffer = new ComputeBuffer(8, 8 * sizeof(float));
 
         _displacement = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);
         _slope = CreateRenderTex(N, N, RenderTextureFormat.RGHalf, true);

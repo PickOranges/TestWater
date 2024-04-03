@@ -83,7 +83,7 @@ float JONSWAP(SpectrumParameters sp, float w /* freq */){
     float r = exp(- (w-sp.peakOmega)*(w-sp.peakOmega) / 2 / sigma / sigma / sp.peakOmega / sp.peakOmega ); // Why zero ????
     float r1 = exp( (w-sp.peakOmega)*(w-sp.peakOmega) / 2 / sigma / sigma / sp.peakOmega / sp.peakOmega ); 
     float w_repri=1/w;
-    return sp.alpha * g * g * pow(w_repri,5) * exp(-1.25 * pow(sp.peakOmega/w, 4)) * pow(3.3, r1) ;  // ????
+    return sp.alpha * g * g * pow(w_repri,5) * exp(-1.25 * pow(sp.peakOmega/w, 4)) * pow(3.3, r) ;  // ????
 }
 
 // eq 30
@@ -94,6 +94,7 @@ float TMA_phi(float w){
     if(wh<=2.0) return 1-0.5*(2-wh)*(2-wh);
     return 1.0;
 }
+
 
 
 
@@ -121,6 +122,25 @@ float TMA_phi(float w){
 //		* oneOverOmega * oneOverOmega * oneOverOmega * oneOverOmega * oneOverOmega
 //		* exp(-1.25f * peakOmegaOverOmega * peakOmegaOverOmega * peakOmegaOverOmega * peakOmegaOverOmega)
 //		* pow(abs(spectrum.gamma), r);
+//}
+
+//float NormalizationFactor(float s) { 
+//    float s2 = s * s;
+//    float s3 = s2 * s;
+//    float s4 = s3 * s;
+//    if (s < 5) return -0.000564f * s4 + 0.00776f * s3 - 0.044f * s2 + 0.192f * s + 0.163f;
+//    else return -4.80e-08f * s4 + 1.07e-05f * s3 - 9.53e-04f * s2 + 5.90e-02f * s + 3.93e-01f;
+//}
+
+//float Cosine2s(float theta, float s) {
+//	return NormalizationFactor(s) * pow(abs(cos(0.5f * theta)), 2.0f * s);
+//}
+
+//float SpreadPower(float omega, float peakOmega) {
+//	if (omega > peakOmega)
+//		return 9.77f * pow(abs(omega / peakOmega), -2.5f);
+//	else
+//		return 6.97f * pow(abs(omega / peakOmega), 5.0f);
 //}
 
 
@@ -156,38 +176,20 @@ float ShapingParameterSksi(SpectrumParameters sp, float w){
     return 16*tanh(sp.peakOmega/w)*sp.swell*sp.swell;
 }
 
-float NormalizationFactor(float s) { 
-    float s2 = s * s;
-    float s3 = s2 * s;
-    float s4 = s3 * s;
-    if (s < 5) return -0.000564f * s4 + 0.00776f * s3 - 0.044f * s2 + 0.192f * s + 0.163f;
-    else return -4.80e-08f * s4 + 1.07e-05f * s3 - 9.53e-04f * s2 + 5.90e-02f * s + 3.93e-01f;
-}
-
-float Cosine2s(float theta, float s) {
-	return NormalizationFactor(s) * pow(abs(cos(0.5f * theta)), 2.0f * s);
-}
-
-float SpreadPower(float omega, float peakOmega) {
-	if (omega > peakOmega)
-		return 9.77f * pow(abs(omega / peakOmega), -2.5f);
-	else
-		return 6.97f * pow(abs(omega / peakOmega), 5.0f);
-}
 
 // finalD = D_base + D_ksi, paper P36 left-bottom.
 float finalDirectionalSpread(SpectrumParameters sp, float w, float theta){
-    //float s=ShapingParameter(sp,w);
-    //float sksi=ShapingParameterSksi(sp,w);
+    float s=ShapingParameter(sp,w);
+    float sksi=ShapingParameterSksi(sp,w);
 
-    //float Dbase=MitsuyasuDS(w,theta,s);
-    //float Dksi=MitsuyasuDS(w,theta,sksi);
+    float Dbase=MitsuyasuDS(w,theta,s);
+    float Dksi=MitsuyasuDS(w,theta,sksi);
     
     //return Dbase+Dksi;
-    //return lerp(2.0f / 3.1415f * cos(theta) * cos(theta), Dbase+Dksi, sp.spreadBlend);
+    return lerp(2.0f / 3.1415f * cos(theta) * cos(theta), Dbase+Dksi, sp.spreadBlend);
 
-    float s = SpreadPower(w, sp.peakOmega) + 16 * tanh(min/* ??? why min */(w / sp.peakOmega, 20)) * sp.swell * sp.swell;
-    return lerp(2.0f / 3.1415f * cos(theta) * cos(theta), Cosine2s(theta - sp.angle, s), sp.spreadBlend);
+    //float s = SpreadPower(w, sp.peakOmega) + 16 * tanh(min/* ??? why min */(w / sp.peakOmega, 20)) * sp.swell * sp.swell;
+    //return lerp(2.0f / 3.1415f * cos(theta) * cos(theta), Cosine2s(theta - sp.angle, s), sp.spreadBlend);
 }
 
 // attenuation
@@ -216,7 +218,8 @@ void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
     uint seed=N*id.y + id.x + N;
 
     float halfN = N/2;  // we use a square spectrum, instead of rectangular.
-    float dk=2*PI/L;  
+    //float dk=2*PI/L;  
+    float dk=2*PI*10.0f;  
     float2 k=(id.xy-halfN)*dk;
     float kLength=length(k); 
 
@@ -227,8 +230,8 @@ void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
     float2 gauss1 = UniformToGaussian(uniformRandSamples.x, uniformRandSamples.y);
     float2 gauss2 = UniformToGaussian(uniformRandSamples.z, uniformRandSamples.w);
 
-    //float2 gauss=UniformToGaussian(uniformRandSamples.x, uniformRandSamples.y);
-    float2 gauss=float2(gauss2.x, gauss1.y);
+    float2 gauss=UniformToGaussian(uniformRandSamples.x, uniformRandSamples.y);
+    //float2 gauss=float2(gauss2.x, gauss1.y);
 
     float theta = atan2(k.y, k.x);
     float tanhval = tanhvalue(kLength);
