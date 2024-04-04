@@ -412,6 +412,21 @@ MonoBehaviour:
   waterFFTShader: {fileID: 7200000, guid: 1270b0d77cbad05449bce9310fedf8c3, type: 3}
   waterRenderingShader: {fileID: 4800000, guid: 245b57e8f8f074a4d952b327ed1c5914,
     type: 3}
+  _target: {fileID: 0}
+  _bufferfly: {fileID: 0}
+  _ifftResult: {fileID: 0}
+  _initSpectrum: {fileID: 0}
+  _spectrum: {fileID: 0}
+  _displacement: {fileID: 0}
+  _slope: {fileID: 0}
+  lowCutoff: 0.0001
+  highCutoff: 9000
+  depth: 20
+  repeatTime: 200
+  speed: 1
+  lambda: {x: 1, y: 1}
+  displacementDepthFalloff: 1
+  updateSpectrum: 0
   spectrum0:
     scale: 0.1
     windSpeed: 2

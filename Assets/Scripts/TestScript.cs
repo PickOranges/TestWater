@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
+using static UnityEngine.GraphicsBuffer;
 
 
 public class TestScript : MonoBehaviour
@@ -9,7 +10,7 @@ public class TestScript : MonoBehaviour
     public Shader waterRenderingShader;
     
     Camera _camera;  // ??? never read
-    public RenderTexture _target;
+    public RenderTexture target;
     public RenderTexture _bufferfly, _ifftResult;
     public RenderTexture _initSpectrum, _spectrum, _displacement, _slope; 
 
@@ -279,12 +280,12 @@ public class TestScript : MonoBehaviour
     void InverseFFT(RenderTexture spectrumTexture)
     {
         waterFFTShader.SetTexture(3, "IFFTResult", spectrumTexture);
+        waterFFTShader.SetTexture(3, "target", target);
         waterFFTShader.Dispatch(3, 1, N, 1);
         waterFFTShader.SetTexture(4, "IFFTResult", spectrumTexture);
+        waterFFTShader.SetTexture(4, "target", target);
         waterFFTShader.Dispatch(4, 1, N, 1);
     }
-
-
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     void OnEndCameraRendering(ScriptableRenderContext context, Camera camera)
@@ -297,61 +298,62 @@ public class TestScript : MonoBehaviour
         //Graphics.Blit(_target, camera.targetTexture);
         //Graphics.CopyTexture(_target, camera.targetTexture);
 
-        if (!_initSpectrum) return;
-        Graphics.Blit(_initSpectrum, camera.targetTexture);
+        if (!target) return;
+        Graphics.Blit(target, camera.targetTexture);
     }
 
     private void Start()
     {
+        CreatePlane();
+        CreateMaterial();
+        _camera = Camera.main;
+
         N = 1024;
         logN = (int)Mathf.Log(N, 2.0f);
         threadGroupsX = Mathf.CeilToInt(N / 8.0f);
         threadGroupsY = Mathf.CeilToInt(N / 8.0f);
 
         // 1. Create Textures
-        //_target = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);  // ??? Why visualization different ??? Cuz the RenderTexture has different size ???
-        //InitRenderTexture(_initSpectrum);
+        target = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);
+        
         _initSpectrum = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);
-
-        // 2. Set data
-        waterFFTShader.SetTexture(0, "InitSpectrumTexture", _initSpectrum);
-        waterFFTShader.SetTexture(1, "InitSpectrumTexture", _initSpectrum);
-        _camera = Camera.main;
-        spectrumParamsBuffer = new ComputeBuffer(8, 9 * sizeof(float));
-        //spectrumParamsBuffer = new ComputeBuffer(8, 8 * sizeof(float));
-
         _displacement = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);
         _slope = CreateRenderTex(N, N, RenderTextureFormat.RGHalf, true);
         _spectrum = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);
-
+        spectrumParamsBuffer = new ComputeBuffer(8, 9 * sizeof(float));
+        //spectrumParamsBuffer = new ComputeBuffer(8, 8 * sizeof(float));
         SetSpectrumBuffers();
         SetFFTUniforms();
 
-        // 3. Dispatch
+        // 2. Set Data & Dispatch
+        waterFFTShader.SetTexture(0, "InitSpectrumTexture", _initSpectrum);
+        waterFFTShader.SetTexture(0, "target", target);
         waterFFTShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
+        waterFFTShader.SetTexture(1, "InitSpectrumTexture", _initSpectrum);
+        waterFFTShader.SetTexture(1, "target", target);
         waterFFTShader.Dispatch(1, threadGroupsX, threadGroupsY, 1);
-
-        // 4. Render Pipeline
-        CreatePlane();
-        CreateMaterial();
     }
 
     private void Update()
     {
         RenderPipelineManager.endCameraRendering += OnEndCameraRendering;
 
+        SetFFTUniforms();
         if (updateSpectrum)
         {
             SetSpectrumBuffers();
             waterFFTShader.SetTexture(0, "InitSpectrumTexture", _initSpectrum);
+            waterFFTShader.SetTexture(0, "target", target);
             waterFFTShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
             waterFFTShader.SetTexture(1, "InitSpectrumTexture", _initSpectrum);
+            waterFFTShader.SetTexture(1, "target", target);
             waterFFTShader.Dispatch(1, threadGroupsX, threadGroupsY, 1);
         }
 
-        // Progress Spectrum For FFT
+        //Progress Spectrum For FFT
         waterFFTShader.SetTexture(2, "InitSpectrumTexture", _initSpectrum);
         waterFFTShader.SetTexture(2, "SpectrumTexture", _spectrum);
+        waterFFTShader.SetTexture(2, "target", target);
         waterFFTShader.Dispatch(2, threadGroupsX, threadGroupsY, 1);
 
         // Compute FFT For Height
@@ -361,12 +363,13 @@ public class TestScript : MonoBehaviour
         waterFFTShader.SetTexture(5, "DisplacementTexture", _displacement);
         waterFFTShader.SetTexture(5, "SpectrumTexture", _spectrum);
         waterFFTShader.SetTexture(5, "SlopeTexture", _slope);
+        waterFFTShader.SetTexture(5, "target", target);
         waterFFTShader.Dispatch(5, threadGroupsX, threadGroupsY, 1);
 
         _displacement.GenerateMips();
         _slope.GenerateMips();
 
-        material.SetTexture("DisplacementTexture", _displacement);
-        material.SetTexture("SlopeTexture", _slope);
+        //material.SetTexture("DisplacementTexture", _displacement);
+        //material.SetTexture("SlopeTexture", _slope);
     }
 }
