@@ -279,12 +279,17 @@ float4 FFT(uint threadIndex, float4 input){
     GroupMemoryBarrierWithGroupSync();  
     bool flag = false;
 
-    [unroll]
+    //[unroll]
     for (uint step = 0; step < LOG_SIZE; ++step) {  
         uint2 inputsIndices;  
         float2 twiddle;
         ButterflyValues(step, threadIndex, inputsIndices, twiddle);
-        target[uint2(threadIndex, step)]=float4(twiddle.x, twiddle.y, inputsIndices);
+
+        //// chengzimdl
+        //target[uint2(threadIndex, step)]=float4(twiddle, 0.0, 0.0);
+        //uint idx=N-threadIndex;
+        //target[uint2(step, threadIndex)]=float4(twiddle, 0.0. 0.0);
+        //ButterflyTexture[uint2(step, idx)]=float4(twiddle, 0.0, 0.0);
 
         float4 v = fftGroupBuffer[flag][inputsIndices.y];  
         fftGroupBuffer[!flag][threadIndex] = fftGroupBuffer[flag][inputsIndices.x] + float4(ComplexMult(twiddle, v.xy), ComplexMult(twiddle, v.zw));
@@ -303,7 +308,8 @@ void CS_HorizontalFFT(uint3 id : SV_DISPATCHTHREADID) {
 
 [numthreads(SIZE, 1, 1)]  // 1*N, id.y=0...N-1, id.x=const.
 void CS_VerticalFFT(uint3 id : SV_DISPATCHTHREADID) {
-    IFFTResult[id.yx] = FFT(id.x, IFFTResult[id.yx]);
+    IFFTResult[id.yx] = FFT(id.x, IFFTResult[id.yx]);  // size=1*N, thus y i.e. 0~N-1, thus id.yx
+    target[id.xy]=IFFTResult[id.yx];
 }
 
 [numthreads(8, 8, 1)] 
@@ -313,7 +319,7 @@ void CS_UpdateSpectrumForFFT(uint3 id : SV_DISPATCHTHREADID) {
         float2 h0conj = initialSignal.zw;
 
         float halfN = N / 2.0f;
-        float2 K = (id.xy - halfN) * 2.0f * PI / L;  
+        float2 K = (id.xy - halfN) * 2.0f * PI / 94.0f;  
         float kMag = length(K);
         float kMagRcp = rcp(kMag);  
 
@@ -353,6 +359,8 @@ void CS_UpdateSpectrumForFFT(uint3 id : SV_DISPATCHTHREADID) {
 
         SpectrumTexture[id.xy] = float4(htildeDisplacementX, htildeDisplacementZ);
         SpectrumTexture[id.xy] = float4(htildeSlopeX, htildeSlopeZ);
+
+        //target[id.xy]=SpectrumTexture[id.xy] ;
 }
 
 [numthreads(8, 8, 1)]
@@ -373,6 +381,6 @@ void CS_AssembleMaps(uint3 id : SV_DISPATCHTHREADID) {
     DisplacementTexture[id.xy] = float4(displacement, 0.0);
     SlopeTexture[id.xy] = float2(slopes);
 
-    target[id.xy]=DisplacementTexture[id.xy];
+    //target[id.xy]=DisplacementTexture[id.xy];
 }
 
