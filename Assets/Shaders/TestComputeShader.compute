@@ -58,6 +58,32 @@ float FrequencyDerivative(float kD, float tanhv, float freq){  // length/magnitu
     return 0.5*g*(kD*sech2 + tanhv) / freq;
 }
 
+
+
+
+
+
+
+
+
+float Dispersion(float kMag) {
+    return sqrt(g * kMag * tanh(min(kMag * D, 20)));  // ??? why 20. TODO: remove it and see what'll happen.
+    //return sqrt(_Gravity * kMag * tanh(kMag * _Depth));  
+}
+
+float DispersionDerivative(float kMag) {
+    float th = tanh(min(kMag * D, 20));
+    float ch = cosh(kMag * D);
+    return g * (D * kMag / ch / ch + th) / Dispersion(kMag) / 2.0f;
+}
+
+
+
+
+
+
+
+
 float Gaussian(float x){ 
     return exp(-0.5*x*x)/sqrt(2*PI);
 }
@@ -235,8 +261,14 @@ void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
     if(kLength>=_LowCutoff && kLength<=_HighCutoff){    
         float theta = atan2(k.y, k.x);
         float tanhval = tanhvalue(kLength);
-        float w=Frequency(kLength,tanhval);
-        float dw=FrequencyDerivative(kLength, tanhval, w);
+        //float w=Frequency(kLength,tanhval);
+        //float dw=FrequencyDerivative(kLength, tanhval, w);
+
+
+        float w=Dispersion(kLength);
+        float dw=DispersionDerivative(kLength);
+
+
 
         //float spectrum = /*TMA_phi(w) * JONSWAP(Sps[0],w) */ finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
         float spectrum = JONSWAP(Sps[0],w) * finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
