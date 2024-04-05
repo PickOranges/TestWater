@@ -250,8 +250,7 @@ public class TestScript : MonoBehaviour
 
     void SetFFTUniforms()
     {
-        //waterFFTShader.SetVector("_Lambda", lambda);
-        waterFFTShader.SetVector("L", lambda);
+        waterFFTShader.SetVector("_Lambda", lambda);
         waterFFTShader.SetFloat("_FrameTime", Time.time * speed);
         //waterFFTShader.SetFloat("_DeltaTime", Time.deltaTime);
         waterFFTShader.SetFloat("_RepeatTime", repeatTime);
@@ -360,15 +359,15 @@ public class TestScript : MonoBehaviour
         // Compute FFT For Height
         InverseFFT(_spectrum);
 
-        //// Assemble maps
-        //waterFFTShader.SetTexture(5, "DisplacementTexture", _displacement);
-        //waterFFTShader.SetTexture(5, "SpectrumTexture", _spectrum);
-        //waterFFTShader.SetTexture(5, "SlopeTexture", _slope);
-        //waterFFTShader.SetTexture(5, "target", target);
-        //waterFFTShader.Dispatch(5, threadGroupsX, threadGroupsY, 1);
+        // Assemble maps
+        waterFFTShader.SetTexture(5, "DisplacementTexture", _displacement);
+        waterFFTShader.SetTexture(5, "SpectrumTexture", _spectrum);
+        waterFFTShader.SetTexture(5, "SlopeTexture", _slope);
+        waterFFTShader.SetTexture(5, "target", target);
+        waterFFTShader.Dispatch(5, threadGroupsX, threadGroupsY, 1);
 
-        //_displacement.GenerateMips();
-        //_slope.GenerateMips();
+        _displacement.GenerateMips();
+        _slope.GenerateMips();
 
         //material.SetTexture("DisplacementTexture", _displacement);
         //material.SetTexture("SlopeTexture", _slope);

@@ -1,9 +1,9 @@
-#pragma kernel CS_InitSpectrum
-#pragma kernel CS_PackSpectrumConjugate
-#pragma kernel CS_UpdateSpectrumForFFT
-#pragma kernel CS_HorizontalFFT
-#pragma kernel CS_VerticalFFT
-#pragma kernel CS_AssembleMaps
+#pragma kernel CS_InitSpectrum          // 0
+#pragma kernel CS_PackSpectrumConjugate // 1
+#pragma kernel CS_UpdateSpectrumForFFT  // 2
+#pragma kernel CS_HorizontalFFT         // 3
+#pragma kernel CS_VerticalFFT           // 4
+#pragma kernel CS_AssembleMaps          // 5
 
 #define PI 3.14159265358979323846
 #define PI2 6.28318530718
@@ -45,8 +45,8 @@ StructuredBuffer<SpectrumParameters> Sps;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 float tanhvalue(float kD){ // k: length/magnitute of vector k=[kx, kz]
-    return tanh(min(kD, 3));        // original: 20, idk why?
-    //return tanh(min(kD, 20));        
+    //return tanh(min(kD, 3));        // original: 20, idk why?
+    return tanh(min(kD, 20));        
 }
 
 float Frequency(float k, float tanhv){ 
@@ -210,6 +210,11 @@ float2 EulerFormula(float x) {
     return float2(cos(x), sin(x));
 }
 
+// ????
+float4 Permute(float4 data/* the signal or wave */, float3 id/* thread idx */) {
+    return data * (1.0f - 2.0f * ((id.x + id.y) % 2));                                                 
+}
+
 [numthreads(8,8,1)] 
 void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
 {
@@ -309,7 +314,7 @@ void CS_HorizontalFFT(uint3 id : SV_DISPATCHTHREADID) {
 [numthreads(SIZE, 1, 1)]  // 1*N, id.y=0...N-1, id.x=const.
 void CS_VerticalFFT(uint3 id : SV_DISPATCHTHREADID) {
     IFFTResult[id.yx] = FFT(id.x, IFFTResult[id.yx]);  // size=1*N, thus y i.e. 0~N-1, thus id.yx
-    target[id.xy]=IFFTResult[id.yx];
+    //target[id.xy]=IFFTResult[id.yx];
 }
 
 [numthreads(8, 8, 1)] 
@@ -358,29 +363,32 @@ void CS_UpdateSpectrumForFFT(uint3 id : SV_DISPATCHTHREADID) {
         float2 htildeSlopeZ = float2(displacementX_dx.x - displacementZ_dz.y, displacementX_dx.y + displacementZ_dz.x); // Dxx_Dzz[id.xy]
 
         SpectrumTexture[id.xy] = float4(htildeDisplacementX, htildeDisplacementZ);
-        SpectrumTexture[id.xy] = float4(htildeSlopeX, htildeSlopeZ);
+        //_SpectrumTextures[uint3(id.xy, i * 2 + 1)] = float4(htildeSlopeX, htildeSlopeZ);
+        //SpectrumTexture[id.xy] = float4(htildeSlopeX, htildeSlopeZ);
 
-        //target[id.xy]=SpectrumTexture[id.xy] ;
+        //target[id.xy]=SpectrumTexture[id.xy];
 }
 
 [numthreads(8, 8, 1)]
 void CS_AssembleMaps(uint3 id : SV_DISPATCHTHREADID) {
-    float4 htildeDisplacement = SpectrumTexture[id.xy];  
-    float4 htildeSlope = SpectrumTexture[id.xy]; 
+    //float4 htildeDisplacement = SpectrumTexture[id.xy];  
+    float4 htildeDisplacement = Permute(SpectrumTexture[id.xy], id);  
+    //float4 htildeSlope = SpectrumTexture[id.xy]; 
+    //float4 htildeSlope = Permute(_SpectrumTextures[uint3(id.xy, i * 2 + 1)], id); 
 
     float2 dxdz = htildeDisplacement.rg;
     float2 dydxz = htildeDisplacement.ba;
-    float2 dyxdyz = htildeSlope.rg;
-    float2 dxxdzz = htildeSlope.ba;
+    //float2 dyxdyz = htildeSlope.rg;
+    //float2 dxxdzz = htildeSlope.ba;
         
-    float jacobian = (1.0f + _Lambda.x * dxxdzz.x) * (1.0f + _Lambda.y * dxxdzz.y) - _Lambda.x * _Lambda.y * dydxz.y * dydxz.y;
+    //float jacobian = (1.0f + _Lambda.x * dxxdzz.x) * (1.0f + _Lambda.y * dxxdzz.y) - _Lambda.x * _Lambda.y * dydxz.y * dydxz.y;
     float3 displacement = float3(_Lambda.x * dxdz.x, dydxz.x, _Lambda.y * dxdz.y);
-    float2 slopes = dyxdyz.xy / (1 + abs(dxxdzz * _Lambda));
-    float covariance = slopes.x * slopes.y;
+    //float2 slopes = dyxdyz.xy / (1 + abs(dxxdzz * _Lambda));
+    //float covariance = slopes.x * slopes.y;
 
     DisplacementTexture[id.xy] = float4(displacement, 0.0);
-    SlopeTexture[id.xy] = float2(slopes);
+    //SlopeTexture[id.xy] = float2(slopes);
 
-    //target[id.xy]=DisplacementTexture[id.xy];
+   target[id.xy]=DisplacementTexture[id.xy];
 }
 
