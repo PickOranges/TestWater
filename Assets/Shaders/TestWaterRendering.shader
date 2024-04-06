@@ -3,7 +3,7 @@ Shader "Unlit/TestWaterRendering"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        DisplacementTexture ("DisplacementTexture", 2D)="white"{}
+        //DisplacementTexture ("DisplacementTexture", 2D)="white"{}
     }
     SubShader
     {
@@ -99,23 +99,9 @@ Shader "Unlit/TestWaterRendering"
             sampler2D _MainTex;
             float4 _MainTex_ST;
 
-            sampler2D DisplacementTexture;
-            float4 _Displacement_ST;
-
-
-
-
-
-            //////////chengzimdl 2024.04.06 helper, called at the end of domain shader////////////
-            d2g vertexAddDisplacement(d2g i){
-                float4 wPos=mul(unity_ObjectToWorld, i.pos);
-                float4 h=tex2D(DisplacementTexture, wPos.xz * 0.01);
-
-                g2f o;
-                o.pos=i.pos+h;
-                return o;
-            }
-
+            //sampler2D DisplacementTexture;
+            //float4 _Displacement_ST;
+            //UNITY_DECLARE_TEX2D(DisplacementTexture);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             v2h vert (appdata v)
@@ -136,22 +122,20 @@ Shader "Unlit/TestWaterRendering"
             }
 
 
+            ////////////chengzimdl 2024.04.06 helper, called at the end of domain shader////////////
+            //float4 vertexAddDisplacement(float4 i){
+            //    float4 wPos=mul(unity_ObjectToWorld, i);
+            //    float4 h=UNITY_SAMPLE_TEX2D(DisplacementTexture, wPos.xz * 0.01);
+
+            //    d2g o;
+            //    o.pos=i+h;
 
 
+            //    o.pos=UnityObjectToClipPos(o.pos);
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+            //    return o.pos;
+            //}
 
             // Here patch is OutputPatch, i.e. output of hull shader
             [domain("tri")]
@@ -180,13 +164,18 @@ Shader "Unlit/TestWaterRendering"
                 stream.Append(o);
             }
 
+
             fixed4 frag (g2f i) : SV_Target
             {
                 //fixed4 col = tex2D(_MainTex, i.uv);
                 //fixed4 col = fixed4(i.pos);
                 //return col;
+                //return float4(1.0, 0.0, 0.0, 0.0);
+
                 //float4 wPos=mul(unity_ObjectToWorld, i.pos);
-                //float4 h=tex2D(DisplacementTexture, wPos.xz * 0.01);
+                //float4 h=UNITY_SAMPLE_TEX2D(DisplacementTexture, wPos.xz * 0.01);
+                //i.pos+=h;
+                //i.pos=UnityObjectToClipPos(i.pos);
 
                 float4 wireCol = float4(0,0,0,1);
                 float4 baseCol = float4(1,1,1,1);
