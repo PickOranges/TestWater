@@ -3,6 +3,7 @@ Shader "Unlit/TestWaterRendering"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
+        DisplacementTexture ("DisplacementTexture", 2D)="white"{}
     }
     SubShader
     {
@@ -98,11 +99,28 @@ Shader "Unlit/TestWaterRendering"
             sampler2D _MainTex;
             float4 _MainTex_ST;
 
+            sampler2D DisplacementTexture;
+            float4 _Displacement_ST;
+
+
+
+
+
+            //////////chengzimdl 2024.04.06 helper, called at the end of domain shader////////////
+            d2g vertexAddDisplacement(d2g i){
+                float4 wPos=mul(unity_ObjectToWorld, i.pos);
+                float4 h=tex2D(DisplacementTexture, wPos.xz * 0.01);
+
+                g2f o;
+                o.pos=i.pos+h;
+                return o;
+            }
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             v2h vert (appdata v)
             {
                 v2h o;
-                //o.pos = UnityObjectToClipPos(v.vertex);
                 o.pos=v.vertex;
                 return o;
             }
@@ -116,6 +134,24 @@ Shader "Unlit/TestWaterRendering"
                    uint i:SV_OUTPUTCONTROLPOINTID){
                 return patch[i];
             }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
             // Here patch is OutputPatch, i.e. output of hull shader
             [domain("tri")]
@@ -149,6 +185,8 @@ Shader "Unlit/TestWaterRendering"
                 //fixed4 col = tex2D(_MainTex, i.uv);
                 //fixed4 col = fixed4(i.pos);
                 //return col;
+                //float4 wPos=mul(unity_ObjectToWorld, i.pos);
+                //float4 h=tex2D(DisplacementTexture, wPos.xz * 0.01);
 
                 float4 wireCol = float4(0,0,0,1);
                 float4 baseCol = float4(1,1,1,1);
