@@ -270,17 +270,13 @@ public class TestScript : MonoBehaviour
 
         spectrumParamsBuffer.SetData(spectrums);
         waterFFTShader.SetBuffer(0, "Sps", spectrumParamsBuffer);
-        //waterFFTShader.SetBuffer(0, "_Spectrums", spectrumParamsBuffer);
     }
 
     void SetFFTUniforms()
     {
         waterFFTShader.SetVector("_Lambda", lambda);
         waterFFTShader.SetFloat("_FrameTime", Time.time * speed);
-        //waterFFTShader.SetFloat("_DeltaTime", Time.deltaTime);
         waterFFTShader.SetFloat("_RepeatTime", repeatTime);
-        //waterFFTShader.SetInt("_N", N);
-        //waterFFTShader.SetFloat("_Depth", depth);
         waterFFTShader.SetInt("N", N);
         waterFFTShader.SetFloat("D", depth);
         waterFFTShader.SetFloat("_LowCutoff", lowCutoff);
@@ -291,7 +287,6 @@ public class TestScript : MonoBehaviour
         waterFFTShader.SetInt("_LengthScale1", lengthScale2);
         waterFFTShader.SetInt("_LengthScale2", lengthScale3);
         waterFFTShader.SetInt("_LengthScale3", lengthScale4);
-        //waterFFTShader.SetFloat("_NormalStrength", normalStrength);
 
 
         waterFFTShader.SetFloat("_FoamThreshold", foamThreshold);
@@ -303,12 +298,10 @@ public class TestScript : MonoBehaviour
     void InverseFFT(RenderTexture spectrumTexture)
     {
         waterFFTShader.SetTexture(3, "IFFTResult", spectrumTexture);
-        //waterFFTShader.SetTexture(3, "target", target);
-        //waterFFTShader.SetTexture(3, "ButterflyTexture", _bufferfly);
+        waterFFTShader.SetTexture(3, "target", target);
         waterFFTShader.Dispatch(3, 1, N, 1);
         waterFFTShader.SetTexture(4, "IFFTResult", spectrumTexture);
-        //waterFFTShader.SetTexture(4, "target", target);
-        //waterFFTShader.SetTexture(4, "ButterflyTexture", _bufferfly);
+        waterFFTShader.SetTexture(4, "target", target);
         waterFFTShader.Dispatch(4, 1, N, 1);
     }
 
@@ -354,8 +347,10 @@ public class TestScript : MonoBehaviour
 
         // 2. Set Data & Dispatch
         waterFFTShader.SetTexture(0, "InitSpectrumTexture", _initSpectrum);
+        waterFFTShader.SetTexture(0, "target", target);
         waterFFTShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
         waterFFTShader.SetTexture(1, "InitSpectrumTexture", _initSpectrum);
+        waterFFTShader.SetTexture(1, "target", target);
         waterFFTShader.Dispatch(1, threadGroupsX, threadGroupsY, 1);
     }
 
@@ -376,7 +371,7 @@ public class TestScript : MonoBehaviour
         //Progress Spectrum For FFT
         waterFFTShader.SetTexture(2, "InitSpectrumTexture", _initSpectrum);
         waterFFTShader.SetTexture(2, "SpectrumTexture", _spectrum);
-        //waterFFTShader.SetTexture(2, "target", target);
+        waterFFTShader.SetTexture(2, "target", target);
         waterFFTShader.Dispatch(2, threadGroupsX, threadGroupsY, 1);
 
         // Compute FFT For Height

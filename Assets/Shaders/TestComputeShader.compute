@@ -12,13 +12,11 @@
 #define SIZE 1024
 #define LOG_SIZE 10
 
-RWTexture2DArray<float4> InitSpectrumTexture, SpectrumTexture, DisplacementTexture; 
+RWTexture2DArray<float4> InitSpectrumTexture, SpectrumTexture, IFFTResult, DisplacementTexture; 
 RWTexture2DArray<float2> SlopeTexture;
-//RWTexture2D<float4> /*InitSpectrumTexture, SpectrumTexture, */DisplacementTexture;
+//RWTexture2D<float4> InitSpectrumTexture, SpectrumTexture, DisplacementTexture, IFFTResult;
 //RWTexture2D<float2> SlopeTexture;                                         
-//RWTexture2D<float4> IFFTResult;
 
-RWTexture2DArray<float4> IFFTResult;
 groupshared float4 fftGroupBuffer[2][SIZE]; // 0: tmp  
 
 float D/* depth */;
