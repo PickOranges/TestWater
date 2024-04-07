@@ -426,7 +426,11 @@ MonoBehaviour:
   lambda: {x: 1, y: 1}
   displacementDepthFalloff: 1
   updateSpectrum: 0
-  spectrum0:
+  lengthScale1: 94
+  lengthScale2: 128
+  lengthScale3: 64
+  lengthScale4: 32
+  spectrum1:
     scale: 0.1
     windSpeed: 2
     windDirection: 22
@@ -435,69 +439,69 @@ MonoBehaviour:
     swell: 1
     peakEnhancement: 1
     shortWavesFade: 0.025
-  spectrum1:
-    scale: 0
-    windSpeed: 0
-    windDirection: 0
-    fetch: 0
-    spreadBlend: 0
-    swell: 0
-    peakEnhancement: 0
-    shortWavesFade: 0
   spectrum2:
-    scale: 0
-    windSpeed: 0
-    windDirection: 0
-    fetch: 0
+    scale: 0.07
+    windSpeed: 2
+    windDirection: 59
+    fetch: 1000
     spreadBlend: 0
-    swell: 0
-    peakEnhancement: 0
-    shortWavesFade: 0
+    swell: 1
+    peakEnhancement: 1
+    shortWavesFade: 0.01
   spectrum3:
-    scale: 0
-    windSpeed: 0
-    windDirection: 0
-    fetch: 0
-    spreadBlend: 0
-    swell: 0
-    peakEnhancement: 0
-    shortWavesFade: 0
+    scale: 0.25
+    windSpeed: 20
+    windDirection: 97
+    fetch: 100000000
+    spreadBlend: 0.14
+    swell: 1
+    peakEnhancement: 1
+    shortWavesFade: 0.5
   spectrum4:
-    scale: 0
-    windSpeed: 0
-    windDirection: 0
-    fetch: 0
-    spreadBlend: 0
-    swell: 0
-    peakEnhancement: 0
-    shortWavesFade: 0
+    scale: 0.25
+    windSpeed: 20
+    windDirection: 67
+    fetch: 1000000
+    spreadBlend: 0.47
+    swell: 1
+    peakEnhancement: 1
+    shortWavesFade: 0.5
   spectrum5:
-    scale: 0
-    windSpeed: 0
-    windDirection: 0
-    fetch: 0
-    spreadBlend: 0
-    swell: 0
-    peakEnhancement: 0
-    shortWavesFade: 0
+    scale: 0.15
+    windSpeed: 5
+    windDirection: 105
+    fetch: 1000000
+    spreadBlend: 0.2
+    swell: 1
+    peakEnhancement: 1
+    shortWavesFade: 0.5
   spectrum6:
-    scale: 0
-    windSpeed: 0
-    windDirection: 0
-    fetch: 0
-    spreadBlend: 0
-    swell: 0
-    peakEnhancement: 0
-    shortWavesFade: 0
+    scale: 0.1
+    windSpeed: 1
+    windDirection: 19
+    fetch: 10000
+    spreadBlend: 0.298
+    swell: 0.695
+    peakEnhancement: 1
+    shortWavesFade: 0.5
   spectrum7:
-    scale: 0
-    windSpeed: 0
+    scale: 1
+    windSpeed: 1
+    windDirection: 209
+    fetch: 200000
+    spreadBlend: 0.56
+    swell: 1
+    peakEnhancement: 1
+    shortWavesFade: 0.0001
+  spectrum8:
+    scale: 0.23
+    windSpeed: 1
     windDirection: 0
-    fetch: 0
+    fetch: 1000
     spreadBlend: 0
     swell: 0
-    peakEnhancement: 0
-    shortWavesFade: 0
+    peakEnhancement: 1
+    shortWavesFade: 0.0001
 --- !u!4 &667346739
 Transform:
   m_ObjectHideFlags: 0

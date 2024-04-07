@@ -144,7 +144,7 @@ Shader "Unlit/TestWaterRendering"
                 o.pos=patch[0].pos*bary.x + patch[1].pos*bary.y + patch[2].pos*bary.z;
                 // TODO: do the same to bary coord. ?? or necessary??
 
-                o.pos=UnityObjectToClipPos(o.pos);
+                //o.pos=UnityObjectToClipPos(o.pos);  // 2024.04.07
                 return o;
             }
 

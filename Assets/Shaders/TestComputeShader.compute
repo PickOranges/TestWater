@@ -12,12 +12,12 @@
 #define SIZE 1024
 #define LOG_SIZE 10
 
-//RWTexture2DArray<float4> InitSpectrumTexture; 
-RWTexture2D<float4> InitSpectrumTexture, SpectrumTexture, DisplacementTexture;
-RWTexture2D<float2> SlopeTexture;
-                                         
-RWTexture2D<float4> ButterflyTexture; // N*log2N
-RWTexture2D<float4> IFFTResult;
+RWTexture2DArray<float4> InitSpectrumTexture, SpectrumTexture, DisplacementTexture, SlopeTexture; 
+//RWTexture2D<float4> /*InitSpectrumTexture, SpectrumTexture, */DisplacementTexture;
+//RWTexture2D<float2> SlopeTexture;                                         
+//RWTexture2D<float4> IFFTResult;
+
+RWTexture2DArray<float4> IFFTResult;
 groupshared float4 fftGroupBuffer[2][SIZE]; // 0: tmp  
 
 float D/* depth */;
@@ -25,6 +25,8 @@ float L, _LowCutoff, _HighCutoff;
 float _RepeatTime, _FrameTime;
 float2 _Lambda;
 uint N;
+
+uint _LengthScale0, _LengthScale1, _LengthScale2, _LengthScale3;
 
 RWTexture2D<float4> target;
 
@@ -49,22 +51,14 @@ float tanhvalue(float kD){ // k: length/magnitute of vector k=[kx, kz]
     return tanh(min(kD, 20));        
 }
 
-float Frequency(float k, float tanhv){ 
-   return sqrt(g*k*tanhv);
-}
+//float Frequency(float k, float tanhv){ 
+//   return sqrt(g*k*tanhv);
+//}
 
-float FrequencyDerivative(float kD, float tanhv, float freq){  // length/magnitute of w(k)
-    float sech2=pow(1/cosh(kD),2);
-    return 0.5*g*(kD*sech2 + tanhv) / freq;
-}
-
-
-
-
-
-
-
-
+//float FrequencyDerivative(float kD, float tanhv, float freq){  // length/magnitute of w(k)
+//    float sech2=pow(1/cosh(kD),2);
+//    return 0.5*g*(kD*sech2 + tanhv) / freq;
+//}
 
 float Dispersion(float kMag) {
     return sqrt(g * kMag * tanh(min(kMag * D, 20)));  // ??? why 20. TODO: remove it and see what'll happen.
@@ -76,13 +70,6 @@ float DispersionDerivative(float kMag) {
     float ch = cosh(kMag * D);
     return g * (D * kMag / ch / ch + th) / Dispersion(kMag) / 2.0f;
 }
-
-
-
-
-
-
-
 
 float Gaussian(float x){ 
     return exp(-0.5*x*x)/sqrt(2*PI);
@@ -120,10 +107,6 @@ float2 UniformToGaussian(float u1, float u2) { // ??? what is u1, u2, R, theta
 //    if(wh<=2.0) return 1-0.5*(2-wh)*(2-wh);
 //    return 1.0;
 //}
-
-
-
-
 
 // formula (30), and the formula before (30)
 float TMACorrection(float omega) {
@@ -168,10 +151,6 @@ float SpreadPower(float omega, float peakOmega) {
 	else
 		return 6.97f * pow(abs(omega / peakOmega), 5.0f);
 }
-
-
-
-
 
 // TODO: optimised GPU parallel version
 float EulerGamma(float s){
@@ -236,127 +215,81 @@ float2 EulerFormula(float x) {
     return float2(cos(x), sin(x));
 }
 
-// ????
 float4 Permute(float4 data/* the signal or wave */, float3 id/* thread idx */) {
-    return data * (1.0f - 2.0f * ((id.x + id.y) % 2));                                                 
+    return data * (1.0f - 2.0f * ((id.x + id.y) % 2));   // simulate both positive & negative wave propagation                                              
 }
 
 [numthreads(8,8,1)] 
 void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
 {
     uint seed=id.x + N*id.y + N;
-    seed += 1.0;
+    seed += 1.0; 
 
-    float halfN = N * 0.5f;  // we use a square spectrum, instead of rectangular.
-    float dk=PI2/94.0f;   
-    float2 k=(id.xy-halfN)*dk;
-    float kLength=length(k); 
+    float lengthScales[4] = { _LengthScale0, _LengthScale1, _LengthScale2, _LengthScale3 };
 
-    seed += 0.0 + hash(seed) * 10;
+    for (uint i = 0; i < 4; ++i) {
+        float halfN = N * 0.5f;  
+        float dk=PI2/lengthScales[i];   
+        float2 k=(id.xy-halfN)*dk;
+        float kLength=length(k);
 
-    float4 uniformRandSamples = float4(hash(seed), hash(seed * 2), hash(seed * 3), hash(seed * 4)); // use one seed to generate 4 seeds
-    float2 gauss1 = UniformToGaussian(uniformRandSamples.x, uniformRandSamples.y);
-    float2 gauss2 = UniformToGaussian(uniformRandSamples.z, uniformRandSamples.w);
+        seed += i + hash(seed) * 10;
 
-    if(kLength>=_LowCutoff && kLength<=_HighCutoff){    
-        float theta = atan2(k.y, k.x);
-        float tanhval = tanhvalue(kLength);
-        //float w=Frequency(kLength,tanhval);
-        //float dw=FrequencyDerivative(kLength, tanhval, w);
+        float4 uniformRandSamples = float4(hash(seed), hash(seed * 2), hash(seed * 3), hash(seed * 4)); // use one seed to generate 4 seeds
+        float2 gauss1 = UniformToGaussian(uniformRandSamples.x, uniformRandSamples.y);
+        float2 gauss2 = UniformToGaussian(uniformRandSamples.z, uniformRandSamples.w);
 
+        if(kLength>=_LowCutoff && kLength<=_HighCutoff){    
+            float theta = atan2(k.y, k.x);
+            float tanhval = tanhvalue(kLength);
+            //float w=Frequency(kLength,tanhval);
+            //float dw=FrequencyDerivative(kLength, tanhval, w);
+            float w=Dispersion(kLength);
+            float dw=DispersionDerivative(kLength);
 
-        float w=Dispersion(kLength);
-        float dw=DispersionDerivative(kLength);
+            //float spectrum = /*TMA_phi(w) * JONSWAP(Sps[0],w) */ finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
+            float spectrum = JONSWAP(Sps[i*2],w) * finalDirectionalSpread(Sps[i*2],w,theta) * ShortWavesFade(Sps[i*2],kLength);
+            if (Sps[i*2+1].scale > 0)
+                spectrum += JONSWAP(Sps[i*2+1],w) * finalDirectionalSpread(Sps[i*2+1],w,theta) * ShortWavesFade(Sps[i*2+1],kLength);
 
-
-
-        //float spectrum = /*TMA_phi(w) * JONSWAP(Sps[0],w) */ finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
-        float spectrum = JONSWAP(Sps[0],w) * finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
-        //InitSpectrumTexture[id.xy]=float4(spectrum, 0.0f, 0.0f, 0.0f);
-
-
-        InitSpectrumTexture[id.xy]=float4(float2(gauss2.x, gauss1.y) * sqrt(2 * spectrum * abs(dw) / kLength * dk * dk), 0.0f, 0.0f); 
-    }
-    else{
-        InitSpectrumTexture[id.xy]=0.0f;
+            InitSpectrumTexture[uint3(id.xy,i)]=float4(float2(gauss2.x, gauss1.y) * sqrt(2 * spectrum * abs(dw) / kLength * dk * dk), 0.0f, 0.0f); 
+        }
+        else{
+            InitSpectrumTexture[uint3(id.xy,i)]=0.0f;
+        }
     }
 }
 
 [numthreads(8,8,1)]
 void CS_PackSpectrumConjugate(uint3 id : SV_DISPATCHTHREADID) {
-    float2 h0 = InitSpectrumTexture[id.xy].rg;
-    float2 h0conj = InitSpectrumTexture[uint2((N - id.x ) % N, (N - id.y) % N)].rg;  
-    InitSpectrumTexture[id.xy] = float4(h0, h0conj.x, -h0conj.y); 
-}
-
-void TwiddleFactorAndInputIndices(uint x/* stage-1 */, uint y/* input index */, out uint2 indices/* i, i+b */, out float2 twiddle){
-    uint b = N>>(x+1);
-    uint i = (2 * b * (y / b) + y % b) % N;
-    float2 mult = PI2 * float2(0,1)/N;
-	twiddle = ComplexExp(-mult * ((y / b) * b));
-	ButterflyTexture[uint2(x,y)] = float4(twiddle.x, twiddle.y, i, i + b);
-	ButterflyTexture[uint2(x, y + N / 2)] = float4(-twiddle.x, -twiddle.y, i, i + b);
-}
-
-void ButterflyValues(uint step, uint index, out uint2 indices, out float2 twiddle) {
-    const float twoPi = 6.28318530718;
-    uint b = SIZE >> (step + 1);        
-                                      
-    uint w = b * (index / b);  
-                               
-    uint i = (w + index) % SIZE; 
-    sincos(-twoPi / SIZE * w, twiddle.y, twiddle.x);    
-
-    twiddle.y = -twiddle.y; 
-    indices = uint2(i, i + b);   
-}
-
-float4 FFT(uint threadIndex, float4 input){
-    fftGroupBuffer[0][threadIndex] = input; 
-    GroupMemoryBarrierWithGroupSync();  
-    bool flag = false;
-
-    //[unroll]
-    for (uint step = 0; step < LOG_SIZE; ++step) {  
-        uint2 inputsIndices;  
-        float2 twiddle;
-        ButterflyValues(step, threadIndex, inputsIndices, twiddle);
-
-        //// chengzimdl
-        //target[uint2(threadIndex, step)]=float4(twiddle, 0.0, 0.0);
-        //uint idx=N-threadIndex;
-        //target[uint2(step, threadIndex)]=float4(twiddle, 0.0. 0.0);
-        //ButterflyTexture[uint2(step, idx)]=float4(twiddle, 0.0, 0.0);
-
-        float4 v = fftGroupBuffer[flag][inputsIndices.y];  
-        fftGroupBuffer[!flag][threadIndex] = fftGroupBuffer[flag][inputsIndices.x] + float4(ComplexMult(twiddle, v.xy), ComplexMult(twiddle, v.zw));
-
-        flag = !flag;  
-        GroupMemoryBarrierWithGroupSync();
+    for (uint i = 0; i < 4; ++i) {
+        float2 h0 = InitSpectrumTexture[uint3(id.xy,i)].rg;
+        float2 h0conj = InitSpectrumTexture[uint3((N - id.x) % N, (N - id.y) % N, i)].rg;  
+        InitSpectrumTexture[uint3(id.xy,i)] = float4(h0, h0conj.x, -h0conj.y); 
     }
-
-    return fftGroupBuffer[flag][threadIndex];
 }
 
-[numthreads(SIZE, 1, 1)]  // N*1, id.x=0...N-1, id.y=const.
-void CS_HorizontalFFT(uint3 id : SV_DISPATCHTHREADID) {
-    IFFTResult[id.xy] = FFT(id.x, IFFTResult[id.xy]);  
-}
+//void TwiddleFactorAndInputIndices(uint x/* stage-1 */, uint y/* input index */, out uint2 indices/* i, i+b */, out float2 twiddle){
+//    uint b = N>>(x+1);
+//    uint i = (2 * b * (y / b) + y % b) % N;
+//    float2 mult = PI2 * float2(0,1)/N;
+//	twiddle = ComplexExp(-mult * ((y / b) * b));
+//	ButterflyTexture[uint2(x,y)] = float4(twiddle.x, twiddle.y, i, i + b);
+//	ButterflyTexture[uint2(x, y + N / 2)] = float4(-twiddle.x, -twiddle.y, i, i + b);
+//}
 
-[numthreads(SIZE, 1, 1)]  // 1*N, id.y=0...N-1, id.x=const.
-void CS_VerticalFFT(uint3 id : SV_DISPATCHTHREADID) {
-    IFFTResult[id.yx] = FFT(id.x, IFFTResult[id.yx]);  // size=1*N, thus y i.e. 0~N-1, thus id.yx
-    //target[id.xy]=IFFTResult[id.yx];
-}
 
 [numthreads(8, 8, 1)] 
 void CS_UpdateSpectrumForFFT(uint3 id : SV_DISPATCHTHREADID) {
-        float4 initialSignal = InitSpectrumTexture[id.xy];
+    float lengthScales[4] = { _LengthScale0, _LengthScale1, _LengthScale2, _LengthScale3 };
+
+    for (int i = 0; i < 4; ++i) {
+        float4 initialSignal = InitSpectrumTexture[uint3(id.xy,i)];
         float2 h0 = initialSignal.xy;
         float2 h0conj = initialSignal.zw;
 
         float halfN = N / 2.0f;
-        float2 K = (id.xy - halfN) * 2.0f * PI / 94.0f;  
+        float2 K = (id.xy - halfN) * 2.0f * PI / lengthScales[i];  
         float kMag = length(K);
         float kMagRcp = rcp(kMag);  
 
@@ -394,33 +327,93 @@ void CS_UpdateSpectrumForFFT(uint3 id : SV_DISPATCHTHREADID) {
         float2 htildeSlopeX = float2(displacementY_dx.x - displacementY_dz.y, displacementY_dx.y + displacementY_dz.x); // Dyx_Dyz[id.xy]
         float2 htildeSlopeZ = float2(displacementX_dx.x - displacementZ_dz.y, displacementX_dx.y + displacementZ_dz.x); // Dxx_Dzz[id.xy]
 
-        SpectrumTexture[id.xy] = float4(htildeDisplacementX, htildeDisplacementZ);
-        //_SpectrumTextures[uint3(id.xy, i * 2 + 1)] = float4(htildeSlopeX, htildeSlopeZ);
-        //SpectrumTexture[id.xy] = float4(htildeSlopeX, htildeSlopeZ);
+        SpectrumTexture[uint3(id.xy,i*2)] = float4(htildeDisplacementX, htildeDisplacementZ);
+        SpectrumTexture[uint3(id.xy, i*2+1)] = float4(htildeSlopeX, htildeSlopeZ);
+    }
 
-        //target[id.xy]=SpectrumTexture[id.xy];
+    //target[id.xy]=SpectrumTexture[id.xy];
 }
+
+
+
+
+
+
+void ButterflyValues(uint step, uint index, out uint2 indices, out float2 twiddle) {
+    const float twoPi = 6.28318530718;
+    uint b = SIZE >> (step + 1);        
+                                      
+    uint w = b * (index / b);  
+                               
+    uint i = (w + index) % SIZE; 
+    sincos(-twoPi / SIZE * w, twiddle.y, twiddle.x);    
+
+    twiddle.y = -twiddle.y; 
+    indices = uint2(i, i + b);   
+}
+
+float4 FFT(uint threadIndex, float4 input){
+    fftGroupBuffer[0][threadIndex] = input; 
+    GroupMemoryBarrierWithGroupSync();  
+    bool flag = false;
+
+    [unroll]
+    for (uint step = 0; step < LOG_SIZE; ++step) {  
+        uint2 inputsIndices;  
+        float2 twiddle;
+        ButterflyValues(step, threadIndex, inputsIndices, twiddle);
+
+        float4 v = fftGroupBuffer[flag][inputsIndices.y];  
+        fftGroupBuffer[!flag][threadIndex] = fftGroupBuffer[flag][inputsIndices.x] + float4(ComplexMult(twiddle, v.xy), ComplexMult(twiddle, v.zw));
+
+        flag = !flag;  
+        GroupMemoryBarrierWithGroupSync();
+    }
+
+    return fftGroupBuffer[flag][threadIndex];
+}
+
+[numthreads(SIZE, 1, 1)]  // N*1, id.x=0...N-1, id.y=const.
+void CS_HorizontalFFT(uint3 id : SV_DISPATCHTHREADID) {
+    for (int i = 0; i < 8; ++i) {
+        IFFTResult[uint3(id.xy,i)] = FFT(id.x, IFFTResult[uint3(id.xy,i)]);  
+    }
+}
+
+[numthreads(SIZE, 1, 1)]  // 1*N, id.y=0...N-1, id.x=const.
+void CS_VerticalFFT(uint3 id : SV_DISPATCHTHREADID) {
+    for (int i = 0; i < 8; ++i) {
+        IFFTResult[uint3(id.yx,i)] = FFT(id.x, IFFTResult[uint3(id.yx,i)]);  // size=1*N, thus y i.e. 0~N-1, thus id.yx
+    }
+    //target[id.xy]=IFFTResult[id.yx];
+}
+
+
+
+
+
 
 [numthreads(8, 8, 1)]
 void CS_AssembleMaps(uint3 id : SV_DISPATCHTHREADID) {
-    //float4 htildeDisplacement = SpectrumTexture[id.xy];  
-    float4 htildeDisplacement = Permute(SpectrumTexture[id.xy], id);  
-    //float4 htildeSlope = SpectrumTexture[id.xy]; 
-    //float4 htildeSlope = Permute(_SpectrumTextures[uint3(id.xy, i * 2 + 1)], id); 
+    for (int i = 0; i < 4; ++i) {
+        float4 htildeDisplacement = Permute(SpectrumTexture[uint3(id.xy,i*2)], id);  
+        //float4 htildeSlope = SpectrumTexture[id.xy]; 
+        //float4 htildeSlope = Permute(_SpectrumTextures[uint3(id.xy, i * 2 + 1)], id); 
 
-    float2 dxdz = htildeDisplacement.rg;
-    float2 dydxz = htildeDisplacement.ba;
-    //float2 dyxdyz = htildeSlope.rg;
-    //float2 dxxdzz = htildeSlope.ba;
+        float2 dxdz = htildeDisplacement.rg;
+        float2 dydxz = htildeDisplacement.ba;
+        //float2 dyxdyz = htildeSlope.rg;
+        //float2 dxxdzz = htildeSlope.ba;
         
-    //float jacobian = (1.0f + _Lambda.x * dxxdzz.x) * (1.0f + _Lambda.y * dxxdzz.y) - _Lambda.x * _Lambda.y * dydxz.y * dydxz.y;
-    float3 displacement = float3(_Lambda.x * dxdz.x, dydxz.x, _Lambda.y * dxdz.y);
-    //float2 slopes = dyxdyz.xy / (1 + abs(dxxdzz * _Lambda));
-    //float covariance = slopes.x * slopes.y;
+        //float jacobian = (1.0f + _Lambda.x * dxxdzz.x) * (1.0f + _Lambda.y * dxxdzz.y) - _Lambda.x * _Lambda.y * dydxz.y * dydxz.y;
+        float3 displacement = float3(_Lambda.x * dxdz.x, dydxz.x, _Lambda.y * dxdz.y);
+        //float2 slopes = dyxdyz.xy / (1 + abs(dxxdzz * _Lambda));
+        //float covariance = slopes.x * slopes.y;
 
-    DisplacementTexture[id.xy] = float4(displacement, 0.0);
-    //SlopeTexture[id.xy] = float2(slopes);
+        DisplacementTexture[uint3(id.xy,i)] = float4(displacement, 0.0);
+        //SlopeTexture[id.xy] = float2(slopes);
+    }
 
-   target[id.xy]=DisplacementTexture[id.xy];
+   target[id.xy]=DisplacementTexture[uint3(id.xy,2)];
 }
 
