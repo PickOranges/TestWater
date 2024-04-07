@@ -12,7 +12,8 @@
 #define SIZE 1024
 #define LOG_SIZE 10
 
-RWTexture2DArray<float4> InitSpectrumTexture, SpectrumTexture, DisplacementTexture, SlopeTexture; 
+RWTexture2DArray<float4> InitSpectrumTexture, SpectrumTexture, DisplacementTexture; 
+RWTexture2DArray<float2> SlopeTexture;
 //RWTexture2D<float4> /*InitSpectrumTexture, SpectrumTexture, */DisplacementTexture;
 //RWTexture2D<float2> SlopeTexture;                                         
 //RWTexture2D<float4> IFFTResult;
@@ -27,9 +28,10 @@ float2 _Lambda;
 uint N;
 
 uint _LengthScale0, _LengthScale1, _LengthScale2, _LengthScale3;
+float _FoamBias, _FoamDecayRate, _FoamAdd, _FoamThreshold;
+
 
 RWTexture2D<float4> target;
-
 
 struct SpectrumParameters { // passed from CPU to GPU, also user can adjust those params for 8 spectrums respectively.
 	float scale;
@@ -269,15 +271,6 @@ void CS_PackSpectrumConjugate(uint3 id : SV_DISPATCHTHREADID) {
     }
 }
 
-//void TwiddleFactorAndInputIndices(uint x/* stage-1 */, uint y/* input index */, out uint2 indices/* i, i+b */, out float2 twiddle){
-//    uint b = N>>(x+1);
-//    uint i = (2 * b * (y / b) + y % b) % N;
-//    float2 mult = PI2 * float2(0,1)/N;
-//	twiddle = ComplexExp(-mult * ((y / b) * b));
-//	ButterflyTexture[uint2(x,y)] = float4(twiddle.x, twiddle.y, i, i + b);
-//	ButterflyTexture[uint2(x, y + N / 2)] = float4(-twiddle.x, -twiddle.y, i, i + b);
-//}
-
 
 [numthreads(8, 8, 1)] 
 void CS_UpdateSpectrumForFFT(uint3 id : SV_DISPATCHTHREADID) {
@@ -396,24 +389,36 @@ void CS_VerticalFFT(uint3 id : SV_DISPATCHTHREADID) {
 [numthreads(8, 8, 1)]
 void CS_AssembleMaps(uint3 id : SV_DISPATCHTHREADID) {
     for (int i = 0; i < 4; ++i) {
-        float4 htildeDisplacement = Permute(SpectrumTexture[uint3(id.xy,i*2)], id);  
-        //float4 htildeSlope = SpectrumTexture[id.xy]; 
-        //float4 htildeSlope = Permute(_SpectrumTextures[uint3(id.xy, i * 2 + 1)], id); 
+        float4 htildeDisplacement = Permute(SpectrumTexture[uint3(id.xy,i*2)], id);   
+        float4 htildeSlope = Permute(SpectrumTexture[uint3(id.xy, i*2+1)], id); 
 
         float2 dxdz = htildeDisplacement.rg;
         float2 dydxz = htildeDisplacement.ba;
-        //float2 dyxdyz = htildeSlope.rg;
-        //float2 dxxdzz = htildeSlope.ba;
+        float2 dyxdyz = htildeSlope.rg;
+        float2 dxxdzz = htildeSlope.ba;
         
-        //float jacobian = (1.0f + _Lambda.x * dxxdzz.x) * (1.0f + _Lambda.y * dxxdzz.y) - _Lambda.x * _Lambda.y * dydxz.y * dydxz.y;
+        float jacobian = (1.0f + _Lambda.x * dxxdzz.x) * (1.0f + _Lambda.y * dxxdzz.y) - _Lambda.x * _Lambda.y * dydxz.y * dydxz.y;
         float3 displacement = float3(_Lambda.x * dxdz.x, dydxz.x, _Lambda.y * dxdz.y);
-        //float2 slopes = dyxdyz.xy / (1 + abs(dxxdzz * _Lambda));
-        //float covariance = slopes.x * slopes.y;
+        float2 slopes = dyxdyz.xy / (1 + abs(dxxdzz * _Lambda));
+        float covariance = slopes.x * slopes.y;
 
-        DisplacementTexture[uint3(id.xy,i)] = float4(displacement, 0.0);
-        //SlopeTexture[id.xy] = float2(slopes);
+
+
+        float foam = DisplacementTexture[uint3(id.xy, i)].a;
+        foam *= exp(-_FoamDecayRate);
+        foam = saturate(foam);
+
+        float biasedJacobian = max(0.0f, -(jacobian - _FoamBias));
+
+        if (biasedJacobian > _FoamThreshold)
+            foam += _FoamAdd * biasedJacobian;
+
+
+
+        DisplacementTexture[uint3(id.xy,i)] = float4(displacement, foam);
+        SlopeTexture[uint3(id.xy,i)] = float2(slopes);
     }
 
-   target[id.xy]=DisplacementTexture[uint3(id.xy,2)];
+   //target[id.xy]=DisplacementTexture[uint3(id.xy,1)];
 }
 

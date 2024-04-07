@@ -430,6 +430,10 @@ MonoBehaviour:
   lengthScale2: 128
   lengthScale3: 64
   lengthScale4: 32
+  foamBias: 0.85
+  foamThreshold: 0
+  foamAdd: 0.1
+  foamDecayRate: 0.0175
   spectrum1:
     scale: 0.1
     windSpeed: 2

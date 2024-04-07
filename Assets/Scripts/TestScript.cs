@@ -8,8 +8,8 @@ public class TestScript : MonoBehaviour
 {
     public ComputeShader waterFFTShader;
     public Shader waterRenderingShader;
-    
-    Camera _camera;  // ??? never read
+
+    Camera _camera;
     public RenderTexture target;
     public RenderTexture _bufferfly;
     public RenderTexture _initSpectrum, _spectrum, _displacement, _slope; 
@@ -35,7 +35,7 @@ public class TestScript : MonoBehaviour
         public float gamma;
         public float shortWavesFade;
         // new
-        public float windSpeed;
+        //public float windSpeed;
     }
     SpectrumSettings[] spectrums = new SpectrumSettings[8];
 
@@ -43,25 +43,50 @@ public class TestScript : MonoBehaviour
     [Header("Spectrum Settings")]
     [Range(0.0f, 0.1f)]
     public float lowCutoff = 0.0001f;
-
     [Range(0.1f, 9000.0f)]
     public float highCutoff = 9000.0f;
-
     [Range(2.0f, 20.0f)]
     public float depth = 20.0f;
-
     [Range(0.0f, 200.0f)]
     public float repeatTime = 200.0f;
-
     [Range(0.0f, 5.0f)]
     public float speed = 1.0f;
-
     public Vector2 lambda = new Vector2(1.0f, 1.0f);
-
     [Range(0.0f, 10.0f)]
     public float displacementDepthFalloff = 1.0f;
-
     public bool updateSpectrum = false;
+
+    [Header("Layer One")]
+    [Range(0, 2048)]
+    public int lengthScale1 = 94;
+
+    [Header("Layer Two")]
+    [Range(0, 2048)]
+    public int lengthScale2 = 256;
+
+    [Header("Layer Three")]
+    [Range(0, 2048)]
+    public int lengthScale3 = 256;
+
+    [Header("Layer Four")]
+    [Range(0, 2048)]
+    public int lengthScale4 = 256;
+
+
+    [Header("Foam Settings")]
+    [Range(-2.0f, 2.0f)]
+    public float foamBias = -0.5f;
+
+    [Range(-10.0f, 10.0f)]
+    public float foamThreshold = 0.0f;
+
+    [Range(0.0f, 1.0f)]
+    public float foamAdd = 0.5f;
+
+    [Range(0.0f, 1.0f)]
+    public float foamDecayRate = 0.05f;
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
     [System.Serializable]
     public struct DisplaySpectrumSettings
@@ -81,8 +106,6 @@ public class TestScript : MonoBehaviour
     }
 
     [SerializeField]
-    public DisplaySpectrumSettings spectrum0;
-    [SerializeField]
     public DisplaySpectrumSettings spectrum1;
     [SerializeField]
     public DisplaySpectrumSettings spectrum2;
@@ -96,6 +119,8 @@ public class TestScript : MonoBehaviour
     public DisplaySpectrumSettings spectrum6;
     [SerializeField]
     public DisplaySpectrumSettings spectrum7;
+    [SerializeField]
+    public DisplaySpectrumSettings spectrum8;
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     
 
@@ -229,19 +254,19 @@ public class TestScript : MonoBehaviour
         computeSettings.shortWavesFade = displaySettings.shortWavesFade;
 
         // new
-        computeSettings.windSpeed = displaySettings.windSpeed;
+        //computeSettings.windSpeed = displaySettings.windSpeed;
     }
 
     void SetSpectrumBuffers()
     {
-        FillSpectrumStruct(spectrum0, ref spectrums[0]);
-        FillSpectrumStruct(spectrum1, ref spectrums[1]);
-        FillSpectrumStruct(spectrum2, ref spectrums[2]);
-        FillSpectrumStruct(spectrum3, ref spectrums[3]);
-        FillSpectrumStruct(spectrum4, ref spectrums[4]);
-        FillSpectrumStruct(spectrum5, ref spectrums[5]);
-        FillSpectrumStruct(spectrum6, ref spectrums[6]);
-        FillSpectrumStruct(spectrum7, ref spectrums[7]);
+        FillSpectrumStruct(spectrum1, ref spectrums[0]);
+        FillSpectrumStruct(spectrum2, ref spectrums[1]);
+        FillSpectrumStruct(spectrum3, ref spectrums[2]);
+        FillSpectrumStruct(spectrum4, ref spectrums[3]);
+        FillSpectrumStruct(spectrum5, ref spectrums[4]);
+        FillSpectrumStruct(spectrum6, ref spectrums[5]);
+        FillSpectrumStruct(spectrum7, ref spectrums[6]);
+        FillSpectrumStruct(spectrum8, ref spectrums[7]);
 
         spectrumParamsBuffer.SetData(spectrums);
         waterFFTShader.SetBuffer(0, "Sps", spectrumParamsBuffer);
@@ -262,28 +287,27 @@ public class TestScript : MonoBehaviour
         waterFFTShader.SetFloat("_HighCutoff", highCutoff);
 
 
-        //waterFFTShader.SetInt("_LengthScale0", lengthScale1);
-        //waterFFTShader.SetInt("_LengthScale1", lengthScale2);
-        //waterFFTShader.SetInt("_LengthScale2", lengthScale3);
-        //waterFFTShader.SetInt("_LengthScale3", lengthScale4);
+        waterFFTShader.SetInt("_LengthScale0", lengthScale1);
+        waterFFTShader.SetInt("_LengthScale1", lengthScale2);
+        waterFFTShader.SetInt("_LengthScale2", lengthScale3);
+        waterFFTShader.SetInt("_LengthScale3", lengthScale4);
         //waterFFTShader.SetFloat("_NormalStrength", normalStrength);
 
 
-        //waterFFTShader.SetFloat("_FoamThreshold", foamThreshold);
-        //waterFFTShader.SetFloat("_FoamBias", foamBias);
-        //waterFFTShader.SetFloat("_FoamDecayRate", foamDecayRate);
-        //waterFFTShader.SetFloat("_FoamThreshold", foamThreshold);
-        //waterFFTShader.SetFloat("_FoamAdd", foamAdd);
+        waterFFTShader.SetFloat("_FoamThreshold", foamThreshold);
+        waterFFTShader.SetFloat("_FoamBias", foamBias);
+        waterFFTShader.SetFloat("_FoamDecayRate", foamDecayRate);
+        waterFFTShader.SetFloat("_FoamAdd", foamAdd);
     }
 
     void InverseFFT(RenderTexture spectrumTexture)
     {
         waterFFTShader.SetTexture(3, "IFFTResult", spectrumTexture);
-        waterFFTShader.SetTexture(3, "target", target);
+        //waterFFTShader.SetTexture(3, "target", target);
         //waterFFTShader.SetTexture(3, "ButterflyTexture", _bufferfly);
         waterFFTShader.Dispatch(3, 1, N, 1);
         waterFFTShader.SetTexture(4, "IFFTResult", spectrumTexture);
-        waterFFTShader.SetTexture(4, "target", target);
+        //waterFFTShader.SetTexture(4, "target", target);
         //waterFFTShader.SetTexture(4, "ButterflyTexture", _bufferfly);
         waterFFTShader.Dispatch(4, 1, N, 1);
     }
@@ -317,13 +341,14 @@ public class TestScript : MonoBehaviour
         // 1. Create Textures
         target = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);
         
-        _initSpectrum = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);
-        _bufferfly= CreateRenderTex(N, logN, RenderTextureFormat.ARGBHalf, true);
-        _displacement = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);
-        _slope = CreateRenderTex(N, N, RenderTextureFormat.RGHalf, true);
-        _spectrum = CreateRenderTex(N, N, RenderTextureFormat.ARGBHalf, true);
-        spectrumParamsBuffer = new ComputeBuffer(8, 9 * sizeof(float));
-        //spectrumParamsBuffer = new ComputeBuffer(8, 8 * sizeof(float));
+        _initSpectrum = CreateRenderTex(N, N, 4, RenderTextureFormat.ARGBHalf, true);
+        _spectrum = CreateRenderTex(N, N, 8, RenderTextureFormat.ARGBHalf, true);
+
+        _displacement = CreateRenderTex(N, N, 4, RenderTextureFormat.ARGBHalf, true);
+        _slope = CreateRenderTex(N, N, 4, RenderTextureFormat.RGHalf, true);
+
+        //spectrumParamsBuffer = new ComputeBuffer(8, 9 * sizeof(float));
+        spectrumParamsBuffer = new ComputeBuffer(8, 8 * sizeof(float));
         SetSpectrumBuffers();
         SetFFTUniforms();
 
@@ -343,17 +368,15 @@ public class TestScript : MonoBehaviour
         {
             SetSpectrumBuffers();
             waterFFTShader.SetTexture(0, "InitSpectrumTexture", _initSpectrum);
-            waterFFTShader.SetTexture(0, "target", target);
             waterFFTShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
             waterFFTShader.SetTexture(1, "InitSpectrumTexture", _initSpectrum);
-            waterFFTShader.SetTexture(1, "target", target);
             waterFFTShader.Dispatch(1, threadGroupsX, threadGroupsY, 1);
         }
 
         //Progress Spectrum For FFT
         waterFFTShader.SetTexture(2, "InitSpectrumTexture", _initSpectrum);
         waterFFTShader.SetTexture(2, "SpectrumTexture", _spectrum);
-        waterFFTShader.SetTexture(2, "target", target);
+        //waterFFTShader.SetTexture(2, "target", target);
         waterFFTShader.Dispatch(2, threadGroupsX, threadGroupsY, 1);
 
         // Compute FFT For Height
@@ -369,7 +392,7 @@ public class TestScript : MonoBehaviour
         _displacement.GenerateMips();
         _slope.GenerateMips();
 
-        //material.SetTexture("DisplacementTexture", _displacement);
-        //material.SetTexture("SlopeTexture", _slope);
+        material.SetTexture("DisplacementTexture", _displacement);
+        material.SetTexture("SlopeTexture", _slope);
     }
 }
