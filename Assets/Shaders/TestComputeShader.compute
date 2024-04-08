@@ -46,10 +46,10 @@ struct SpectrumParameters { // passed from CPU to GPU, also user can adjust thos
 StructuredBuffer<SpectrumParameters> Sps;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-float tanhvalue(float kD){ // k: length/magnitute of vector k=[kx, kz]
-    //return tanh(min(kD, 3));        // original: 20, idk why?
-    return tanh(min(kD, 20));        
-}
+//float tanhvalue(float kD){ // k: length/magnitute of vector k=[kx, kz]
+//    //return tanh(min(kD, 3));        // original: 20, idk why?
+//    return tanh(min(kD, 20));        
+//}
 
 //float Frequency(float k, float tanhv){ 
 //   return sqrt(g*k*tanhv);
@@ -206,10 +206,10 @@ float2 ComplexMult(float2 a, float2 b) {
     return float2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
 }
 
-float2 ComplexExp(float2 a)
-{
-	return float2(cos(a.y), sin(a.y)) * exp(a.x);
-}
+//float2 ComplexExp(float2 a)
+//{
+//	return float2(cos(a.y), sin(a.y)) * exp(a.x);
+//}
 
 float2 EulerFormula(float x) {
     return float2(cos(x), sin(x));
@@ -228,8 +228,8 @@ void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
     float lengthScales[4] = { _LengthScale0, _LengthScale1, _LengthScale2, _LengthScale3 };
 
     for (uint i = 0; i < 4; ++i) {
-        float halfN = N * 0.5f;  
-        float dk=PI2/lengthScales[i];   
+        float halfN = N / 2.0f;  
+        float dk=PI * 2 / lengthScales[i];   
         float2 k=(id.xy-halfN)*dk;
         float kLength=length(k);
 
@@ -241,15 +241,15 @@ void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
 
         if(kLength>=_LowCutoff && kLength<=_HighCutoff){    
             float theta = atan2(k.y, k.x);
-            float tanhval = tanhvalue(kLength);
-            //float w=Frequency(kLength,tanhval);
-            //float dw=FrequencyDerivative(kLength, tanhval, w);
             float w=Dispersion(kLength);
             float dw=DispersionDerivative(kLength);
+            //float tanhval = tanhvalue(kLength);
+            //float w=Frequency(kLength,tanhval);
+            //float dw=FrequencyDerivative(kLength, tanhval, w);
 
             //float spectrum = /*TMA_phi(w) * JONSWAP(Sps[0],w) */ finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
             float spectrum = JONSWAP(Sps[i*2],w) * finalDirectionalSpread(Sps[i*2],w,theta) * ShortWavesFade(Sps[i*2],kLength);
-            if (Sps[i*2+1].scale > 0)
+            if (Sps[i*2+1].scale > 0) 
                 spectrum += JONSWAP(Sps[i*2+1],w) * finalDirectionalSpread(Sps[i*2+1],w,theta) * ShortWavesFade(Sps[i*2+1],kLength);
 
             InitSpectrumTexture[uint3(id.xy,i)]=float4(float2(gauss2.x, gauss1.y) * sqrt(2 * spectrum * abs(dw) / kLength * dk * dk), 0.0f, 0.0f); 
@@ -258,6 +258,7 @@ void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
             InitSpectrumTexture[uint3(id.xy,i)]=0.0f;
         }
     }
+    target[id.xy]=InitSpectrumTexture[uint3(id.xy,1)];
 }
 
 [numthreads(8,8,1)]
@@ -267,6 +268,7 @@ void CS_PackSpectrumConjugate(uint3 id : SV_DISPATCHTHREADID) {
         float2 h0conj = InitSpectrumTexture[uint3((N - id.x) % N, (N - id.y) % N, i)].rg;  
         InitSpectrumTexture[uint3(id.xy,i)] = float4(h0, h0conj.x, -h0conj.y); 
     }
+    //target[id.xy]=InitSpectrumTexture[uint3(id.xy,0)];
 }
 
 
@@ -417,6 +419,6 @@ void CS_AssembleMaps(uint3 id : SV_DISPATCHTHREADID) {
         SlopeTexture[uint3(id.xy,i)] = float2(slopes);
     }
 
-   //target[id.xy]=DisplacementTexture[uint3(id.xy,1)];
+   //target[id.xy]=DisplacementTexture[uint3(id.xy,2)];
 }
 
