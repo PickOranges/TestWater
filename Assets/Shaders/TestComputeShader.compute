@@ -250,7 +250,7 @@ void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
             //float spectrum = /*TMA_phi(w) * JONSWAP(Sps[0],w) */ finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
             float spectrum = JONSWAP(Sps[i*2],w) * finalDirectionalSpread(Sps[i*2],w,theta) * ShortWavesFade(Sps[i*2],kLength);
             if (Sps[i*2+1].scale > 0) 
-                spectrum += JONSWAP(Sps[i*2+1],w) * finalDirectionalSpread(Sps[i*2+1],w,theta) * ShortWavesFade(Sps[i*2+1],kLength);
+                //spectrum += JONSWAP(Sps[i*2+1],w) * finalDirectionalSpread(Sps[i*2+1],w,theta) * ShortWavesFade(Sps[i*2+1],kLength);
 
             InitSpectrumTexture[uint3(id.xy,i)]=float4(float2(gauss2.x, gauss1.y) * sqrt(2 * spectrum * abs(dw) / kLength * dk * dk), 0.0f, 0.0f); 
         }
@@ -258,7 +258,7 @@ void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
             InitSpectrumTexture[uint3(id.xy,i)]=0.0f;
         }
     }
-    target[id.xy]=InitSpectrumTexture[uint3(id.xy,1)];
+    //target[id.xy]=InitSpectrumTexture[uint3(id.xy,3)];
 }
 
 [numthreads(8,8,1)]
@@ -419,6 +419,6 @@ void CS_AssembleMaps(uint3 id : SV_DISPATCHTHREADID) {
         SlopeTexture[uint3(id.xy,i)] = float2(slopes);
     }
 
-   //target[id.xy]=DisplacementTexture[uint3(id.xy,2)];
+   //target[id.xy]=DisplacementTexture[uint3(id.xy,4)];
 }
 

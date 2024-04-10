@@ -2,8 +2,7 @@ Shader "Unlit/TestWaterRendering"
 {
     Properties
     {
-        _MainTex ("Texture", 2D) = "white" {}
-        //DisplacementTexture ("DisplacementTexture", 2D)="white"{}
+        //_MainTex ("Texture", 2D) = "white" {}
     }
     SubShader
     {
@@ -96,12 +95,8 @@ Shader "Unlit/TestWaterRendering"
                 float3 bary:TEXCOORD1;
             };
 
-            sampler2D _MainTex;
-            float4 _MainTex_ST;
-
-            //sampler2D DisplacementTexture;
-            //float4 _Displacement_ST;
-            //UNITY_DECLARE_TEX2D(DisplacementTexture);
+            //sampler2D _MainTex;
+            //float4 _MainTex_ST;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             v2h vert (appdata v)
@@ -121,30 +116,13 @@ Shader "Unlit/TestWaterRendering"
                 return patch[i];
             }
 
-
-            ////////////chengzimdl 2024.04.06 helper, called at the end of domain shader////////////
-            //float4 vertexAddDisplacement(float4 i){
-            //    float4 wPos=mul(unity_ObjectToWorld, i);
-            //    float4 h=UNITY_SAMPLE_TEX2D(DisplacementTexture, wPos.xz * 0.01);
-
-            //    d2g o;
-            //    o.pos=i+h;
-
-
-            //    o.pos=UnityObjectToClipPos(o.pos);
-
-
-            //    return o.pos;
-            //}
-
             // Here patch is OutputPatch, i.e. output of hull shader
             [domain("tri")]
             d2g ds(const OutputPatch<v2h,3> patch, TessFactors tf, float3 bary:SV_DOMAINLOCATION){ 
                 d2g o;
                 o.pos=patch[0].pos*bary.x + patch[1].pos*bary.y + patch[2].pos*bary.z;
                 // TODO: do the same to bary coord. ?? or necessary??
-
-                //o.pos=UnityObjectToClipPos(o.pos);  // 2024.04.07
+                o.pos=UnityObjectToClipPos(o.pos);  // 2024.04.07
                 return o;
             }
 
@@ -167,16 +145,6 @@ Shader "Unlit/TestWaterRendering"
 
             fixed4 frag (g2f i) : SV_Target
             {
-                //fixed4 col = tex2D(_MainTex, i.uv);
-                //fixed4 col = fixed4(i.pos);
-                //return col;
-                //return float4(1.0, 0.0, 0.0, 0.0);
-
-                //float4 wPos=mul(unity_ObjectToWorld, i.pos);
-                //float4 h=UNITY_SAMPLE_TEX2D(DisplacementTexture, wPos.xz * 0.01);
-                //i.pos+=h;
-                //i.pos=UnityObjectToClipPos(i.pos);
-
                 float4 wireCol = float4(0,0,0,1);
                 float4 baseCol = float4(1,1,1,1);
 

@@ -340,14 +340,13 @@ public class TestScript : MonoBehaviour
         _displacement = CreateRenderTex(N, N, 4, RenderTextureFormat.ARGBHalf, true);
         _slope = CreateRenderTex(N, N, 4, RenderTextureFormat.RGHalf, true);
 
-        //spectrumParamsBuffer = new ComputeBuffer(8, 9 * sizeof(float));
         spectrumParamsBuffer = new ComputeBuffer(8, 8 * sizeof(float));
         SetSpectrumBuffers();
         SetFFTUniforms();
 
         // 2. Set Data & Dispatch
         waterFFTShader.SetTexture(0, "InitSpectrumTexture", _initSpectrum);
-        waterFFTShader.SetTexture(0, "target", target);
+        //waterFFTShader.SetTexture(0, "target", target);
         waterFFTShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
         waterFFTShader.SetTexture(1, "InitSpectrumTexture", _initSpectrum);
         //waterFFTShader.SetTexture(1, "target", target);
@@ -356,7 +355,7 @@ public class TestScript : MonoBehaviour
 
     private void Update()
     {
-        RenderPipelineManager.endCameraRendering += OnEndCameraRendering;
+        //RenderPipelineManager.endCameraRendering += OnEndCameraRendering;
 
         SetFFTUniforms();
         if (updateSpectrum)
@@ -383,7 +382,7 @@ public class TestScript : MonoBehaviour
         waterFFTShader.SetTexture(5, "DisplacementTexture", _displacement);
         waterFFTShader.SetTexture(5, "SpectrumTexture", _spectrum);
         waterFFTShader.SetTexture(5, "SlopeTexture", _slope);
-        //waterFFTShader.SetTexture(5, "target", target);
+        waterFFTShader.SetTexture(5, "target", target);
         waterFFTShader.Dispatch(5, threadGroupsX, threadGroupsY, 1);
 
         _displacement.GenerateMips();
