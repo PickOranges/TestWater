@@ -419,6 +419,6 @@ void CS_AssembleMaps(uint3 id : SV_DISPATCHTHREADID) {
         SlopeTexture[uint3(id.xy,i)] = float2(slopes);
     }
 
-   //target[id.xy]=DisplacementTexture[uint3(id.xy,4)];
+   target[id.xy]=DisplacementTexture[uint3(id.xy,0)];
 }
 
