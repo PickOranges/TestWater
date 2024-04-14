@@ -3,7 +3,7 @@ Shader "Unlit/TestWaterRendering"
     Properties
     {
         [Header(Light Settings)][Space][Space]
-        _SunDirection("Light Dir", Vector)=(0,-1,0,1)
+        _SunDirection("Light Dir", Vector)=(0,1,0,1)
         [HDR]_SunIrradiance("Sun Irradiance", Color)=(1,0.694,0.32,1)
         [Space][Space]
 
@@ -24,15 +24,14 @@ Shader "Unlit/TestWaterRendering"
         [Space][Space]
 
         [Header(PBR Settings)][Space][Space]
-        [HDR]_ScatterColor("Scatter Color", Color)=(1,1,1,1)
-        [HDR]_BubbleColor("Bubble Color", Color)=(1,1,1,1)
+        [HDR]_ScatterColor("Scatter Color", Color)=(0.016,0.0753,0.16,1)
+        [HDR]_BubbleColor("Bubble Color", Color)=(0,0.02,0.016,1)
         _EnvironmentLightStrength("Environment Light Strength", Float)=0.5
         [Space][Space]
-        _WavePeakScatterStrength("Wave Peak Scatter Strength", Float)=0.5
-        _HeightModifier("Height Modifier", Float)=0.5
-        _ScatterStrength("Scatter Strength", Float)=0.5
+        _WavePeakScatterStrength("Wave Peak Scatter Strength", Float)=1
+        _HeightModifier("Height Modifier", Float)=1
+        _ScatterStrength("Scatter Strength", Float)=1
         _ScatterShadowStrength("Scatter Shadow Strength", Float)=0.5
-
     }
     SubShader
     {
