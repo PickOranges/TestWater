@@ -505,6 +505,28 @@ MonoBehaviour:
     swell: 0
     peakEnhancement: 1
     shortWavesFade: 0.0001
+  sunDiretion:
+    x: -1.29
+    y: -1
+    z: 4.86
+  sunIrradiance: {r: 191, g: 124, b: 56, a: 1}
+  normalStrength: 1
+  normalDepthAttenuation: 1
+  foamSubstract0: 0.04
+  foamSubstract1: -0.04
+  foamSubstract2: -0.46
+  foamSubstract3: -0.38
+  roughness: 0.075
+  foamColor: {r: 153, g: 142, b: 152, a: 1}
+  foamRoughnessModifier: 0
+  foamDepthAttenuation: 1
+  scatterColor: {r: 0.015686275, g: 0.07450981, b: 0.16078432, a: 1}
+  bubbleColor: {r: 0, g: 0.019607844, b: 0.015686275, a: 1}
+  environmentLightStrength: 0.5
+  wavePeakScatterStrength: 1
+  heightModifier: 1
+  scatterStrength: 1
+  scatterShadowStrength: 0.5
 --- !u!4 &667346739
 Transform:
   m_ObjectHideFlags: 0

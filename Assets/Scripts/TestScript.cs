@@ -1,7 +1,7 @@
 using System;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-using static UnityEngine.GraphicsBuffer;
 
 
 public class TestScript : MonoBehaviour
@@ -11,7 +11,6 @@ public class TestScript : MonoBehaviour
 
     Camera _camera;
     public RenderTexture target;
-    //public RenderTexture _bufferfly;
     public RenderTexture _initSpectrum, _spectrum, _displacement, _slope; 
 
     Mesh mesh;
@@ -87,7 +86,6 @@ public class TestScript : MonoBehaviour
     public float foamDecayRate = 0.05f;
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
     [System.Serializable]
     public struct DisplaySpectrumSettings
     {
@@ -122,8 +120,34 @@ public class TestScript : MonoBehaviour
     [SerializeField]
     public DisplaySpectrumSettings spectrum8;
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
+    [Header("Light Settings")]
+    public float3 sunDiretion;
+    [ColorUsage(true, true)] public Color sunIrradiance;
 
+    [Header("Normal Settings")]
+    public float normalStrength = 1;
+    public float normalDepthAttenuation = 1;
+
+    [Header("Foam Settings")]
+    public float foamSubstract0;
+    public float foamSubstract1;
+    public float foamSubstract2;
+    public float foamSubstract3;
+    public float roughness;
+    [ColorUsage(true, true)] public Color foamColor;
+    public float foamRoughnessModifier;
+    public float foamDepthAttenuation;
+
+    [Header("PBR Settings")]
+    [ColorUsage(true, true)] public Color scatterColor;
+    [ColorUsage(true, true)] public Color bubbleColor;
+    public float environmentLightStrength;
+    public float wavePeakScatterStrength;
+    public float heightModifier;
+    public float scatterStrength;
+    public float scatterShadowStrength;
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     void InitRenderTexture(RenderTexture rt)
     {
         if (!rt || rt.width != Screen.width || rt.height != Screen.height)
