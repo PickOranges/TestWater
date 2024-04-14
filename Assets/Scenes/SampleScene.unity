@@ -509,7 +509,7 @@ MonoBehaviour:
     x: -1.29
     y: -1
     z: 4.86
-  sunIrradiance: {r: 191, g: 124, b: 56, a: 1}
+  sunIrradiance: {r: 2.9960785, g: 1.9450982, b: 0.87843144, a: 1}
   normalStrength: 1
   normalDepthAttenuation: 1
   foamSubtract0: 0.04
@@ -517,11 +517,11 @@ MonoBehaviour:
   foamSubtract2: -0.46
   foamSubtract3: -0.38
   roughness: 0.075
-  foamColor: {r: 122.56019, g: 113.74867, b: 100.13087, a: 1}
+  foamColor: {r: 0.74901956, g: 0.6951685, b: 0.6119441, a: 1}
   foamRoughnessModifier: 0
   foamDepthAttenuation: 1
-  scatterColor: {r: 0.015686275, g: 0.07450981, b: 0.16078432, a: 1}
-  bubbleColor: {r: 0, g: 0.019607844, b: 0.015686275, a: 1}
+  scatterColor: {r: 0.03137255, g: 0.14901961, b: 0.32156864, a: 1}
+  bubbleColor: {r: 0, g: 0.039215688, b: 0.03137255, a: 1}
   environmentLightStrength: 0.5
   wavePeakScatterStrength: 1
   heightModifier: 1
