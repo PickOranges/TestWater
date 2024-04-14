@@ -129,23 +129,23 @@ public class TestScript : MonoBehaviour
     public float normalDepthAttenuation = 1;
 
     [Header("Foam Settings")]
-    public float foamSubstract0;
-    public float foamSubstract1;
-    public float foamSubstract2;
-    public float foamSubstract3;
-    public float roughness;
+    [Range(-2.0f, 2.0f)] public float foamSubstract0;
+    [Range(-2.0f, 2.0f)] public float foamSubstract1;
+    [Range(-2.0f, 2.0f)] public float foamSubstract2;
+    [Range(-2.0f, 2.0f)] public float foamSubstract3;
+    [Range(0.0f, 2.0f)] public float roughness;
     [ColorUsage(true, true)] public Color foamColor;
-    public float foamRoughnessModifier;
-    public float foamDepthAttenuation;
+    [Range(0.0f, 2.0f)] public float foamRoughnessModifier;
+    [Range(0.0f, 10.0f)] public float foamDepthAttenuation;
 
     [Header("PBR Settings")]
     [ColorUsage(true, true)] public Color scatterColor;
     [ColorUsage(true, true)] public Color bubbleColor;
-    public float environmentLightStrength;
-    public float wavePeakScatterStrength;
-    public float heightModifier;
-    public float scatterStrength;
-    public float scatterShadowStrength;
+    [Range(0.0f, 2.0f)] public float environmentLightStrength;
+    [Range(0.0f, 10.0f)] public float wavePeakScatterStrength;
+    [Range(0.0f, 10.0f)] public float heightModifier;
+    [Range(0.0f, 10.0f)] public float scatterStrength;
+    [Range(0.0f, 10.0f)] public float scatterShadowStrength;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     void InitRenderTexture(RenderTexture rt)
