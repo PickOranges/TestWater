@@ -2,35 +2,37 @@ Shader "Unlit/TestWaterRendering"
 {
     Properties
     {
-        //_MainTex ("Texture", 2D) = "white" {}
+        [Header(Light Settings)][Space][Space]
         _SunDirection("Light Dir", Vector)=(0,-1,0,1)
-        _SunIrradiance("Sun Irradiance", Vector)=(0,-1,0,1)
+        [HDR]_SunIrradiance("Sun Irradiance", Color)=(1,0.694,0.32,1)
+        [Space][Space]
 
-        _FoamSubtract0("Foam Substract 0", vector)=(0,0,0,1)
-        _FoamSubtract1("Foam Substract 1", vector)=(0,0,0,1)
-        _FoamSubtract2("Foam Substract 2", vector)=(0,0,0,1)
-        _FoamSubtract3("Foam Substract 3", vector)=(0,0,0,1)
-
-        _NormalStrength("Normal Strength", Vector)=(0,0,0,1)
-        _FoamDepthAttenuation("Foam Depth Attenuation", Vector)=(0,0,0,1)
-
-        _NormalDepthAttenuation("Normals Depth Attenuation", Vector)=(0,0,0,1)
-
+        [Header(Normal Settings)][Space][Space]
+        _NormalStrength("Normal Strength", Float)=1
+        _NormalDepthAttenuation("Normals Depth Attenuation", Float)=1
+        [Space][Space]
+        
+        [Header(Foam Settings)][Space][Space]
+        _FoamSubtract0("Foam Substract 0", Float)=0.04
+        _FoamSubtract1("Foam Substract 1", Float)=-0.04
+        _FoamSubtract2("Foam Substract 2", Float)=-0.46
+        _FoamSubtract3("Foam Substract 3", Float)=-0.38
         _Roughness("Roughness", Float)=0.5
+        [HDR]_FoamColor("Foam Color", Color)=(1,1,1,1)
         _FoamRoughnessModifier("Foam Roughness Modifier", Float)=0.5
+        _FoamDepthAttenuation("Foam Depth Attenuation", Float)=1
+        [Space][Space]
 
+        [Header(PBR Settings)][Space][Space]
+        [HDR]_ScatterColor("Scatter Color", Color)=(1,1,1,1)
+        [HDR]_BubbleColor("Bubble Color", Color)=(1,1,1,1)
         _EnvironmentLightStrength("Environment Light Strength", Float)=0.5
-
-        _HeightModifier("Height Modifier", Float)=0.5
-
-        _ScatterColor("Scatter Color", Color)=(1,1,1,1)
-        _BubbleColor("Bubble Color", Color)=(1,1,1,1)
-
+        [Space][Space]
         _WavePeakScatterStrength("Wave Peak Scatter Strength", Float)=0.5
+        _HeightModifier("Height Modifier", Float)=0.5
         _ScatterStrength("Scatter Strength", Float)=0.5
         _ScatterShadowStrength("Scatter Shadow Strength", Float)=0.5
 
-        _FoamColor("Foam Color", Color)=(1,1,1,1)
     }
     SubShader
     {
@@ -206,8 +208,9 @@ Shader "Unlit/TestWaterRendering"
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             #define PI 3.14159265358979323846
 
-            float4 _SunDirection, _SunIrradiance, _FoamSubtract0, _FoamSubtract1, _FoamSubtract2, _FoamSubtract3, _NormalStrength, _FoamDepthAttenuation;
+            float4 _SunDirection, _SunIrradiance, _NormalStrength, _FoamDepthAttenuation;
             float4 _NormalDepthAttenuation, _ScatterColor, _BubbleColor, _FoamColor;
+            float _FoamSubtract0, _FoamSubtract1, _FoamSubtract2, _FoamSubtract3;
             float _Roughness, _FoamRoughnessModifier, _EnvironmentLightStrength, _HeightModifier, _BubbleDensity;
             float _WavePeakScatterStrength, _ScatterStrength, _ScatterShadowStrength;
             
