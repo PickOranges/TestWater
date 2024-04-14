@@ -129,10 +129,10 @@ public class TestScript : MonoBehaviour
     public float normalDepthAttenuation = 1;
 
     [Header("Foam Settings")]
-    [Range(-2.0f, 2.0f)] public float foamSubstract0;
-    [Range(-2.0f, 2.0f)] public float foamSubstract1;
-    [Range(-2.0f, 2.0f)] public float foamSubstract2;
-    [Range(-2.0f, 2.0f)] public float foamSubstract3;
+    [Range(-2.0f, 2.0f)] public float foamSubtract0;
+    [Range(-2.0f, 2.0f)] public float foamSubtract1;
+    [Range(-2.0f, 2.0f)] public float foamSubtract2;
+    [Range(-2.0f, 2.0f)] public float foamSubtract3;
     [Range(0.0f, 2.0f)] public float roughness;
     [ColorUsage(true, true)] public Color foamColor;
     [Range(0.0f, 2.0f)] public float foamRoughnessModifier;
@@ -379,7 +379,28 @@ public class TestScript : MonoBehaviour
 
     private void Update()
     {
+        // Debugging
         //RenderPipelineManager.endCameraRendering += OnEndCameraRendering;
+        material.SetFloat("_NormalStrength", normalStrength);
+        material.SetFloat("_Roughness", roughness);
+        material.SetFloat("_FoamRoughnessModifier", foamRoughnessModifier);
+        material.SetVector("_SunIrradiance", sunIrradiance);
+        material.SetVector("_BubbleColor", bubbleColor);
+        material.SetVector("_ScatterColor", scatterColor);
+        material.SetVector("_FoamColor", foamColor);
+        material.SetFloat("_HeightModifier", heightModifier);
+        material.SetFloat("_DisplacementDepthAttenuation", displacementDepthFalloff);
+        material.SetFloat("_NormalDepthAttenuation", normalDepthAttenuation);
+        material.SetFloat("_FoamDepthAttenuation", foamDepthAttenuation);
+        material.SetFloat("_WavePeakScatterStrength", wavePeakScatterStrength);
+        material.SetFloat("_ScatterStrength", scatterStrength);
+        material.SetFloat("_ScatterShadowStrength", scatterShadowStrength);
+        material.SetFloat("_EnvironmentLightStrength", environmentLightStrength);
+        material.SetFloat("_FoamSubtract0", foamSubtract0);
+        material.SetFloat("_FoamSubtract1", foamSubtract1);
+        material.SetFloat("_FoamSubtract2", foamSubtract2);
+        material.SetFloat("_FoamSubtract3", foamSubtract3);
+
 
         SetFFTUniforms();
         if (updateSpectrum)
