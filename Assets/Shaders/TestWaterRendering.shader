@@ -207,13 +207,12 @@ Shader "Unlit/TestWaterRendering"
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             #define PI 3.14159265358979323846
 
-            float4 _SunDirection, _SunIrradiance, _NormalStrength, _FoamDepthAttenuation;
-            float4 _NormalDepthAttenuation, _ScatterColor, _BubbleColor, _FoamColor;
+            float4 _SunDirection, _SunIrradiance;
+            float4 _ScatterColor, _BubbleColor, _FoamColor;
             float _FoamSubtract0, _FoamSubtract1, _FoamSubtract2, _FoamSubtract3;
-            float _Roughness, _FoamRoughnessModifier, _EnvironmentLightStrength, _HeightModifier, _BubbleDensity;
+            float _Roughness, _FoamRoughnessModifier, _NormalDepthAttenuation, _EnvironmentLightStrength, _NormalStrength, _FoamDepthAttenuation, _HeightModifier, _BubbleDensity;
             float _WavePeakScatterStrength, _ScatterStrength, _ScatterShadowStrength;
             
-
             samplerCUBE _EnvironmentMap;
 			int _UseEnvironmentMap;
 
@@ -231,10 +230,9 @@ Shader "Unlit/TestWaterRendering"
 
             float4 frag (g2f i) : SV_Target
             {
-                float4 wireCol = float4(0,0,0,1);
-                float4 baseCol = float4(1,1,1,1);
-
-                float dist=min(min(i.bary.x, i.bary.y), i.bary.z);
+                //float4 wireCol = float4(0,0,0,1);
+                //float4 baseCol = float4(1,1,1,1);
+                //float dist=min(min(i.bary.x, i.bary.y), i.bary.z);
                 //return float4(lerp(wireCol, baseCol, dist).xyz, 1);
 
                 float3 lightDir = -normalize(_SunDirection.xyz);
