@@ -4,6 +4,8 @@ Shader "Unlit/TestWaterRendering"
     {
         //_MainTex ("Texture", 2D) = "white" {}
         _SunDirection("Light Dir", Vector)=(0,-1,0,1)
+        _SunIrradiance("Sun Irradiance", Vector)=(0,-1,0,1)
+
         _FoamSubtract0("Foam Substract 0", vector)=(0,0,0,1)
         _FoamSubtract1("Foam Substract 1", vector)=(0,0,0,1)
         _FoamSubtract2("Foam Substract 2", vector)=(0,0,0,1)
@@ -11,6 +13,24 @@ Shader "Unlit/TestWaterRendering"
 
         _NormalStrength("Normal Strength", Vector)=(0,0,0,1)
         _FoamDepthAttenuation("Foam Depth Attenuation", Vector)=(0,0,0,1)
+
+        _NormalDepthAttenuation("Normals Depth Attenuation", Vector)=(0,0,0,1)
+
+        _Roughness("Roughness", Float)=0.5
+        _FoamRoughnessModifier("Foam Roughness Modifier", Float)=0.5
+
+        _EnvironmentLightStrength("Environment Light Strength", Float)=0.5
+
+        _HeightModifier("Height Modifier", Float)=0.5
+
+        _ScatterColor("Scatter Color", Color)=(1,1,1,1)
+        _BubbleColor("Bubble Color", Color)=(1,1,1,1)
+
+        _WavePeakScatterStrength("Wave Peak Scatter Strength", Float)=0.5
+        _ScatterStrength("Scatter Strength", Float)=0.5
+        _ScatterShadowStrength("Scatter Shadow Strength", Float)=0.5
+
+        _FoamColor("Foam Color", Color)=(1,1,1,1)
     }
     SubShader
     {
@@ -26,7 +46,10 @@ Shader "Unlit/TestWaterRendering"
             #pragma domain ds
             #pragma geometry gs
             #pragma fragment frag
-            #include "UnityCG.cginc"
+            //#include "UnityCG.cginc"
+
+            #include "UnityPBSLighting.cginc"
+            #include "AutoLight.cginc"
 
             struct appdata
             {
@@ -48,7 +71,6 @@ Shader "Unlit/TestWaterRendering"
 
             bool TriangleIsBelowClipPlane(float3 p0, float3 p1, float3 p2, int planeIndex, float bias) {
                 float4 plane = unity_CameraWorldClipPlanes[planeIndex];
-
                 return dot(float4(p0, 1), plane) < bias && dot(float4(p1, 1), plane) < bias && dot(float4(p2, 1), plane) < bias;
             }
 
@@ -182,7 +204,28 @@ Shader "Unlit/TestWaterRendering"
             }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            float4 _SunDirection, _FoamSubtract0, _FoamSubtract1, _FoamSubtract2, _FoamSubtract3, _NormalStrength, _FoamDepthAttenuation;
+            #define PI 3.14159265358979323846
+
+            float4 _SunDirection, _SunIrradiance, _FoamSubtract0, _FoamSubtract1, _FoamSubtract2, _FoamSubtract3, _NormalStrength, _FoamDepthAttenuation;
+            float4 _NormalDepthAttenuation, _ScatterColor, _BubbleColor, _FoamColor;
+            float _Roughness, _FoamRoughnessModifier, _EnvironmentLightStrength, _HeightModifier, _BubbleDensity;
+            float _WavePeakScatterStrength, _ScatterStrength, _ScatterShadowStrength;
+            
+
+            samplerCUBE _EnvironmentMap;
+			int _UseEnvironmentMap;
+
+            float SmithMaskingBeckmann(float3 H, float3 S, float roughness) {	
+				float hdots = max(0.001f, DotClamped(H, S));
+				float a = hdots / (roughness * sqrt(1 - hdots * hdots));
+				float a2 = a * a;
+				return a < 1.6f ? (1.0f - 1.259f * a + 0.396f * a2) / (3.535f * a + 2.181 * a2) : 0.0f;
+			}
+
+            float Beckmann(float ndoth, float roughness) {  
+				float exp_arg = (ndoth * ndoth - 1) / (roughness * roughness * ndoth * ndoth);
+				return exp(exp_arg) / (PI * roughness * roughness * ndoth * ndoth * ndoth * ndoth);
+			}
 
             float4 frag (g2f i) : SV_Target
             {
@@ -190,7 +233,7 @@ Shader "Unlit/TestWaterRendering"
                 float4 baseCol = float4(1,1,1,1);
 
                 float dist=min(min(i.bary.x, i.bary.y), i.bary.z);
-                return float4(lerp(wireCol, baseCol, dist).xyz, 1);
+                //return float4(lerp(wireCol, baseCol, dist).xyz, 1);
 
                 float3 lightDir = -normalize(_SunDirection.xyz);
                 float3 viewDir = normalize(_WorldSpaceCameraPos - i.data.worldPos);
@@ -218,8 +261,51 @@ Shader "Unlit/TestWaterRendering"
 
                 float3 macroNormal = float3(0, 1, 0);  // normal of XOZ-plane
 				float3 mesoNormal = normalize(float3(-slopes.x, 1.0f, -slopes.y));
+                mesoNormal = normalize(lerp(float3(0, 1, 0), mesoNormal, pow(saturate(depth), _NormalDepthAttenuation)));  
 				mesoNormal = normalize(UnityObjectToWorldNormal(normalize(mesoNormal)));
 
+                float NdotL = DotClamped(mesoNormal, lightDir);  
+
+                float a = _Roughness + foam * _FoamRoughnessModifier;
+				float ndoth = max(0.0001f, dot(mesoNormal, halfwayDir));
+
+				float viewMask = SmithMaskingBeckmann(halfwayDir, viewDir, a);
+				float lightMask = SmithMaskingBeckmann(halfwayDir, lightDir, a);
+
+                float G = rcp(1 + viewMask + lightMask);
+
+                float eta = 1.33f;	// refraction of the ocean; air: 1
+				float R = ((eta - 1) * (eta - 1)) / ((eta + 1) * (eta + 1));  // R0 = (n1-n2)^2 / (n1+n2)^2
+				float thetaV = acos(viewDir.y); // draw a figure: viewDir.y is actually the projection onto surface normal, i.e. cos<n, viewDir>.
+												// thus we can compute the angle between surface normal and viewDir.
+				float numerator = pow(1 - dot(mesoNormal, viewDir), 5 * exp(-2.69 * a));  // what is the exp(...) ? which algorithm ?
+				float F = R + (1 - R) * numerator / (1.0f + 22.7f * pow(a, 1.5f));  // ???
+				F = saturate(F);
+
+                float3 specular = _SunIrradiance.xyz * F * G * Beckmann(ndoth, a);
+				specular /= 4.0f * max(0.001f, DotClamped(macroNormal, lightDir));
+				specular *= DotClamped(mesoNormal, lightDir);
+
+				float3 envReflection = texCUBE(_EnvironmentMap, reflect(-viewDir, mesoNormal)).rgb;
+				envReflection *= _EnvironmentLightStrength;
+
+				float H = max(0.0f, displacementFoam.y) * _HeightModifier;
+				float3 scatterColor = _ScatterColor;
+				float3 bubbleColor = _BubbleColor;
+				float bubbleDensity = _BubbleDensity;
+				
+				float k1 = _WavePeakScatterStrength * H * pow(DotClamped(lightDir, -viewDir), 4.0f) * pow(0.5f - 0.5f * dot(lightDir, mesoNormal), 3.0f);
+				float k2 = _ScatterStrength * pow(DotClamped(viewDir, mesoNormal), 2.0f);
+				float k3 = _ScatterShadowStrength * NdotL;
+				float k4 = bubbleDensity;
+
+				float3 scatter = (k1 + k2) * scatterColor * _SunIrradiance * rcp(1 + lightMask);
+				scatter += k3 * scatterColor * _SunIrradiance + k4 * bubbleColor * _SunIrradiance;
+
+				float3 output = (1 - F) * scatter + specular + F * envReflection;  // diffuse + specular + ambient ???
+				output = max(0.0f, output);
+				output = lerp(output, _FoamColor, saturate(foam));
+                return float4(output, 1.0f);
             }
             ENDCG
         }
