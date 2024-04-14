@@ -19,9 +19,9 @@ Shader "Unlit/TestWaterRendering"
         _FoamSubtract1("Foam Substract 1", Float)=-0.04
         _FoamSubtract2("Foam Substract 2", Float)=-0.46
         _FoamSubtract3("Foam Substract 3", Float)=-0.38
-        _Roughness("Roughness", Float)=0.5
-        [HDR]_FoamColor("Foam Color", Color)=(1,1,1,1)
-        _FoamRoughnessModifier("Foam Roughness Modifier", Float)=0.5
+        _Roughness("Roughness", Float)=0.075
+        [HDR]_FoamColor("Foam Color", Color)=(0.6,0.5568,0.492,1)
+        _FoamRoughnessModifier("Foam Roughness Modifier", Float)=0 // ???
         _FoamDepthAttenuation("Foam Depth Attenuation", Float)=1
         [Space][Space]
 
