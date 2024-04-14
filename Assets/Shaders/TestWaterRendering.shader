@@ -3,6 +3,14 @@ Shader "Unlit/TestWaterRendering"
     Properties
     {
         //_MainTex ("Texture", 2D) = "white" {}
+        _SunDirection("Light Dir", Vector)=(0,-1,0,1)
+        _FoamSubtract0("Foam Substract 0", vector)=(0,0,0,1)
+        _FoamSubtract1("Foam Substract 1", vector)=(0,0,0,1)
+        _FoamSubtract2("Foam Substract 2", vector)=(0,0,0,1)
+        _FoamSubtract3("Foam Substract 3", vector)=(0,0,0,1)
+
+        _NormalStrength("Normal Strength", Vector)=(0,0,0,1)
+        _FoamDepthAttenuation("Foam Depth Attenuation", Vector)=(0,0,0,1)
     }
     SubShader
     {
@@ -11,6 +19,7 @@ Shader "Unlit/TestWaterRendering"
 
         Pass
         {
+
             CGPROGRAM
             #pragma vertex vert
             #pragma hull hs
@@ -28,7 +37,7 @@ Shader "Unlit/TestWaterRendering"
             // control point
             struct v2h{  
                 float4 pos:SV_POSITION; 
-                float2 uv:TEXCOORD0;  // ??? is uv necessary or NOT ??? // chengzimdl 2024.04.10
+                //float2 uv:TEXCOORD0;  // ??? is uv necessary or NOT ??? // chengzimdl 2024.04.10
             };
 
             #define _TessellationEdgeLength 10
@@ -86,6 +95,7 @@ Shader "Unlit/TestWaterRendering"
             /////////////////////////////////////////////////////////////////////////
             // introduce displacement texture array into final position
             UNITY_DECLARE_TEX2DARRAY(DisplacementTexture);
+            UNITY_DECLARE_TEX2DARRAY(SlopeTexture);
 
             struct v2g{
                 float4 pos : SV_POSITION;
@@ -150,7 +160,6 @@ Shader "Unlit/TestWaterRendering"
             // Here patch is OutputPatch, i.e. output of hull shader
             [domain("tri")]  // old return: d2g
             v2g ds(const OutputPatch<v2h,3> patch, TessFactors tf, float3 bary:SV_DOMAINLOCATION){ 
-            //v2g ds(OutputPatch<v2h,3> patch, TessFactors tf, float3 bary:SV_DOMAINLOCATION){ 
                 d2g o; 
                 o.pos=patch[0].pos*bary.x + patch[1].pos*bary.y + patch[2].pos*bary.z;
                 return vp(o);
@@ -172,14 +181,45 @@ Shader "Unlit/TestWaterRendering"
                 stream.Append(o);
             }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            float4 _SunDirection, _FoamSubtract0, _FoamSubtract1, _FoamSubtract2, _FoamSubtract3, _NormalStrength, _FoamDepthAttenuation;
 
-            fixed4 frag (g2f i) : SV_Target
+            float4 frag (g2f i) : SV_Target
             {
                 float4 wireCol = float4(0,0,0,1);
                 float4 baseCol = float4(1,1,1,1);
 
                 float dist=min(min(i.bary.x, i.bary.y), i.bary.z);
                 return float4(lerp(wireCol, baseCol, dist).xyz, 1);
+
+                float3 lightDir = -normalize(_SunDirection.xyz);
+                float3 viewDir = normalize(_WorldSpaceCameraPos - i.data.worldPos);
+                float3 halfwayDir = normalize(lightDir + viewDir);
+			    float depth = i.data.depth;
+
+                float4 displacementFoam1 = UNITY_SAMPLE_TEX2DARRAY(DisplacementTexture, float3(i.data.uv * 0.01f, 0));
+				displacementFoam1.a += _FoamSubtract0;
+                float4 displacementFoam2 = UNITY_SAMPLE_TEX2DARRAY(DisplacementTexture, float3(i.data.uv * 3.0f, 0));
+				displacementFoam2.a += _FoamSubtract1;
+                float4 displacementFoam3 = UNITY_SAMPLE_TEX2DARRAY(DisplacementTexture, float3(i.data.uv * 3.0f, 0));
+				displacementFoam3.a += _FoamSubtract2;
+                float4 displacementFoam4 = UNITY_SAMPLE_TEX2DARRAY(DisplacementTexture, float3(i.data.uv * 0.13f, 0));
+				displacementFoam4.a += _FoamSubtract3;
+                float4 displacementFoam = displacementFoam1 + displacementFoam2 + displacementFoam3 + displacementFoam4;
+
+                float2 slopes1 = UNITY_SAMPLE_TEX2DARRAY(SlopeTexture, float3(i.data.uv * 0.01f, 0));
+				float2 slopes2 = UNITY_SAMPLE_TEX2DARRAY(SlopeTexture, float3(i.data.uv * 3.0f, 1));
+				float2 slopes3 = UNITY_SAMPLE_TEX2DARRAY(SlopeTexture, float3(i.data.uv * 3.0f, 2));
+				float2 slopes4 = UNITY_SAMPLE_TEX2DARRAY(SlopeTexture, float3(i.data.uv * 0.13f, 3));
+				float2 slopes = slopes1 + slopes2 + slopes3 + slopes4;
+
+                slopes *=_NormalStrength;
+				float foam = lerp(0.0f, saturate(displacementFoam.a), pow(depth, _FoamDepthAttenuation));
+
+                float3 macroNormal = float3(0, 1, 0);  // normal of XOZ-plane
+				float3 mesoNormal = normalize(float3(-slopes.x, 1.0f, -slopes.y));
+				mesoNormal = normalize(UnityObjectToWorldNormal(normalize(mesoNormal)));
+
             }
             ENDCG
         }
