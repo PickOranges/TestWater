@@ -3,8 +3,10 @@ Shader "Unlit/TestWaterRendering"
     Properties
     {
         [Header(Light Settings)][Space][Space]
-        _SunDirection("Light Dir", Vector)=(0,1,0,1)
-        [HDR]_SunIrradiance("Sun Irradiance", Color)=(1,0.694,0.32,1)
+        //_SunDirection("Light Dir", Vector)=(0,1,0,1)
+        //[HDR]_SunIrradiance("Sun Irradiance", Color)=(1,0.694,0.32,1)
+        _SunDirection("Light Dir", Vector)=(-1.29,-1,4.86,1)
+        [HDR]_SunIrradiance("Sun Irradiance", Color)=(3.011765,1.945098,0.8784314,1)
         [Space][Space]
 
         [Header(Normal Settings)][Space][Space]
