@@ -71,19 +71,6 @@ public class TestScript : MonoBehaviour
     [Range(0, 2048)]
     public int lengthScale4 = 256;
 
-
-    [Header("Foam Settings")]
-    [Range(-2.0f, 2.0f)]
-    public float foamBias = -0.5f;
-
-    [Range(-10.0f, 10.0f)]
-    public float foamThreshold = 0.0f;
-
-    [Range(0.0f, 1.0f)]
-    public float foamAdd = 0.5f;
-
-    [Range(0.0f, 1.0f)]
-    public float foamDecayRate = 0.05f;
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     [System.Serializable]
@@ -121,7 +108,7 @@ public class TestScript : MonoBehaviour
     public DisplaySpectrumSettings spectrum8;
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     [Header("Light Settings")]
-    public float3 sunDiretion;
+    public float4 sunDirection;
     [ColorUsage(true, true)] public Color sunIrradiance;
 
     [Header("Normal Settings")]
@@ -129,6 +116,16 @@ public class TestScript : MonoBehaviour
     public float normalDepthAttenuation = 1;
 
     [Header("Foam Settings")]
+    [Range(-2.0f, 2.0f)]
+    public float foamBias = -0.5f;
+    [Range(-10.0f, 10.0f)]
+    public float foamThreshold = 0.0f;
+    [Range(0.0f, 1.0f)]
+    public float foamAdd = 0.5f;
+    [Range(0.0f, 1.0f)]
+    public float foamDecayRate = 0.05f;
+    [Range(0.0f, 1.0f)]
+    public float bubbleDensity = 0.05f;
     [Range(-2.0f, 2.0f)] public float foamSubtract0;
     [Range(-2.0f, 2.0f)] public float foamSubtract1;
     [Range(-2.0f, 2.0f)] public float foamSubtract2;
@@ -381,25 +378,37 @@ public class TestScript : MonoBehaviour
     {
         // Debugging
         //RenderPipelineManager.endCameraRendering += OnEndCameraRendering;
-        material.SetFloat("_NormalStrength", normalStrength);
-        material.SetFloat("_Roughness", roughness);
-        material.SetFloat("_FoamRoughnessModifier", foamRoughnessModifier);
+
         material.SetVector("_SunIrradiance", sunIrradiance);
-        material.SetVector("_BubbleColor", bubbleColor);
+        material.SetVector("_SunDirection", sunDirection);
+
         material.SetVector("_ScatterColor", scatterColor);
+        material.SetVector("_BubbleColor", bubbleColor);
         material.SetVector("_FoamColor", foamColor);
-        material.SetFloat("_HeightModifier", heightModifier);
-        material.SetFloat("_DisplacementDepthAttenuation", displacementDepthFalloff);
-        material.SetFloat("_NormalDepthAttenuation", normalDepthAttenuation);
-        material.SetFloat("_FoamDepthAttenuation", foamDepthAttenuation);
-        material.SetFloat("_WavePeakScatterStrength", wavePeakScatterStrength);
-        material.SetFloat("_ScatterStrength", scatterStrength);
-        material.SetFloat("_ScatterShadowStrength", scatterShadowStrength);
-        material.SetFloat("_EnvironmentLightStrength", environmentLightStrength);
+
         material.SetFloat("_FoamSubtract0", foamSubtract0);
         material.SetFloat("_FoamSubtract1", foamSubtract1);
         material.SetFloat("_FoamSubtract2", foamSubtract2);
         material.SetFloat("_FoamSubtract3", foamSubtract3);
+
+        material.SetFloat("_Roughness", roughness);
+        material.SetFloat("_FoamRoughnessModifier", foamRoughnessModifier);
+        material.SetFloat("_NormalDepthAttenuation", normalDepthAttenuation);
+
+        material.SetFloat("_EnvironmentLightStrength", environmentLightStrength);
+        material.SetFloat("_NormalStrength", normalStrength);
+        material.SetFloat("_FoamDepthAttenuation", foamDepthAttenuation);
+        material.SetFloat("_HeightModifier", heightModifier);
+        material.SetFloat("_BubbleDensity", bubbleDensity);
+
+        //material.SetFloat("_DisplacementDepthAttenuation", displacementDepthFalloff);
+        
+        
+        material.SetFloat("_WavePeakScatterStrength", wavePeakScatterStrength);
+        material.SetFloat("_ScatterStrength", scatterStrength);
+        material.SetFloat("_ScatterShadowStrength", scatterShadowStrength);
+        
+
 
 
         SetFFTUniforms();
