@@ -429,10 +429,6 @@ MonoBehaviour:
   lengthScale2: 128
   lengthScale3: 64
   lengthScale4: 32
-  foamBias: 0.85
-  foamThreshold: 0
-  foamAdd: 0.1
-  foamDecayRate: 0.0175
   spectrum1:
     scale: 0.1
     windSpeed: 2
@@ -505,13 +501,19 @@ MonoBehaviour:
     swell: 0
     peakEnhancement: 1
     shortWavesFade: 0.0001
-  sunDiretion:
+  sunDirection:
     x: -1.29
     y: -1
-    z: 4.86
+    z: -4.86
+    w: 0
   sunIrradiance: {r: 2.9960785, g: 1.9450982, b: 0.87843144, a: 1}
   normalStrength: 1
   normalDepthAttenuation: 1
+  foamBias: 0.85
+  foamThreshold: 0
+  foamAdd: 0.1
+  foamDecayRate: 0.0175
+  bubbleDensity: 0.05
   foamSubtract0: 0.04
   foamSubtract1: -0.04
   foamSubtract2: -0.46
