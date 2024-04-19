@@ -230,10 +230,10 @@ Shader "Unlit/TestWaterRendering"
 
             float4 frag (g2f i) : SV_Target
             {
-                //float4 wireCol = float4(0,0,0,1);
-                //float4 baseCol = float4(1,1,1,1);
-                //float dist=min(min(i.bary.x, i.bary.y), i.bary.z);
-                //return float4(lerp(wireCol, baseCol, dist).xyz, 1);
+                float4 wireCol = float4(0,0,0,1);
+                float4 baseCol = float4(1,1,1,1);
+                float dist=min(min(i.bary.x, i.bary.y), i.bary.z);
+                return float4(lerp(wireCol, baseCol, dist).xyz, 1);
 
                 float3 lightDir = -normalize(_SunDirection.xyz);
                 float3 viewDir = normalize(_WorldSpaceCameraPos - i.data.worldPos);
