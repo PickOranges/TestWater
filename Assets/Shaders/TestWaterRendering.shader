@@ -138,8 +138,8 @@ Shader "Unlit/TestWaterRendering"
 
 				// DX12 book: add offset to tessellated points, to make the plane to a real ocean surface.
                 float3 displacement1 = UNITY_SAMPLE_TEX2DARRAY_LOD(DisplacementTexture, float3(g.worldPos.xz * 0.01f, 0), 0);
-                float3 displacement2 = UNITY_SAMPLE_TEX2DARRAY_LOD(DisplacementTexture, float3(g.worldPos.xz * 3.0f, 1), 0);
-                float3 displacement3 = UNITY_SAMPLE_TEX2DARRAY_LOD(DisplacementTexture, float3(g.worldPos.xz * 3.0f, 2), 0);
+                float3 displacement2 = UNITY_SAMPLE_TEX2DARRAY_LOD(DisplacementTexture, float3(g.worldPos.xz * 0.002f, 1), 0);
+                float3 displacement3 = UNITY_SAMPLE_TEX2DARRAY_LOD(DisplacementTexture, float3(g.worldPos.xz * 0.1f, 2), 0);
                 float3 displacement4 = UNITY_SAMPLE_TEX2DARRAY_LOD(DisplacementTexture, float3(g.worldPos.xz * 0.13f, 3), 0);
 				//float3 displacement = displacement1 + displacement2 + displacement3 + displacement4;
                 float3 displacement = displacement1;
