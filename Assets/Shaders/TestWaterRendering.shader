@@ -149,7 +149,7 @@ Shader "Unlit/TestWaterRendering"
 				float depth = 1 - Linear01Depth(clipPos.z / clipPos.w); // linearization of depth
 
 				displacement = lerp(0.0f, displacement, pow(saturate(depth), 1.0f)); // to make plane-point offsets related to depth.
-																											  // i.e. related to the distance to camera/eye.
+																					 // i.e. related to the distance to camera/eye.
 
 				v.pos.xyz += mul(unity_WorldToObject, displacement.xyz);  // original coord + offset
 				
@@ -280,8 +280,8 @@ Shader "Unlit/TestWaterRendering"
 				float R = ((eta - 1) * (eta - 1)) / ((eta + 1) * (eta + 1));  // R0 = (n1-n2)^2 / (n1+n2)^2
 				float thetaV = acos(viewDir.y); // draw a figure: viewDir.y is actually the projection onto surface normal, i.e. cos<n, viewDir>.
 												// thus we can compute the angle between surface normal and viewDir.
-				float numerator = pow(1 - dot(mesoNormal, viewDir), 5 * exp(-2.69 * a));  // what is the exp(...) ? which algorithm ?
-				float F = R + (1 - R) * numerator / (1.0f + 22.7f * pow(a, 1.5f));  // ???
+				float numerator = pow(1 - dot(mesoNormal, viewDir), 5 * exp(-2.69 * a));  
+				float F = R + (1 - R) * numerator / (1.0f + 22.7f * pow(a, 1.5f));  // BRDF paper eq (26)
 				F = saturate(F);
 
                 float3 specular = _SunIrradiance.xyz * F * G * Beckmann(ndoth, a);
@@ -304,7 +304,7 @@ Shader "Unlit/TestWaterRendering"
 				float3 scatter = (k1 + k2) * scatterColor * _SunIrradiance * rcp(1 + lightMask);
 				scatter += k3 * scatterColor * _SunIrradiance + k4 * bubbleColor * _SunIrradiance;
 
-				float3 output = (1 - F) * scatter + specular + F * envReflection;  // diffuse + specular + ambient ???
+				float3 output = (1 - F) * scatter + specular + F * envReflection;  // diffuse(i.e. refraction) + specular + ambient
 				output = max(0.0f, output);
 				output = lerp(output, _FoamColor, saturate(foam));
                 return float4(output, 1.0f);
