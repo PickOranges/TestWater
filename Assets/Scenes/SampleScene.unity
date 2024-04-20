@@ -210,7 +210,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 3.86, z: -12}
+  m_LocalPosition: {x: 0, y: 3.86, z: -12.82}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -503,7 +503,7 @@ MonoBehaviour:
     shortWavesFade: 0.0001
   sunDirection:
     x: -1.29
-    y: -1
+    y: 12
     z: -4.86
     w: 0
   sunIrradiance: {r: 2.9960785, g: 1.9450982, b: 0.87843144, a: 1}
@@ -515,9 +515,9 @@ MonoBehaviour:
   foamDecayRate: 0.0175
   bubbleDensity: 0.05
   foamSubtract0: 0.04
-  foamSubtract1: -0.04
-  foamSubtract2: -0.46
-  foamSubtract3: -0.38
+  foamSubtract1: 0
+  foamSubtract2: 0
+  foamSubtract3: -1
   roughness: 0.075
   foamColor: {r: 0.74901956, g: 0.6951685, b: 0.6119441, a: 1}
   foamRoughnessModifier: 0

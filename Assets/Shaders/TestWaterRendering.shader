@@ -230,10 +230,10 @@ Shader "Unlit/TestWaterRendering"
 
             float4 frag (g2f i) : SV_Target
             {
-                float4 wireCol = float4(0,0,0,1);
-                float4 baseCol = float4(1,1,1,1);
-                float dist=min(min(i.bary.x, i.bary.y), i.bary.z);
-                return float4(lerp(wireCol, baseCol, dist).xyz, 1);
+                //float4 wireCol = float4(0,0,0,1);
+                //float4 baseCol = float4(1,1,1,1);
+                //float dist=min(min(i.bary.x, i.bary.y), i.bary.z);
+                //return float4(lerp(wireCol, baseCol, dist).xyz, 1);
 
                 float3 lightDir = -normalize(_SunDirection.xyz);
                 float3 viewDir = normalize(_WorldSpaceCameraPos - i.data.worldPos);
@@ -242,21 +242,21 @@ Shader "Unlit/TestWaterRendering"
 
                 float4 displacementFoam1 = UNITY_SAMPLE_TEX2DARRAY(DisplacementTexture, float3(i.data.uv * 0.01f, 0));
 				displacementFoam1.a += _FoamSubtract0;
-                float4 displacementFoam2 = UNITY_SAMPLE_TEX2DARRAY(DisplacementTexture, float3(i.data.uv * 3.0f, 0));
+                float4 displacementFoam2 = UNITY_SAMPLE_TEX2DARRAY(DisplacementTexture, float3(i.data.uv * 3.0f, 1));
 				displacementFoam2.a += _FoamSubtract1;
-                float4 displacementFoam3 = UNITY_SAMPLE_TEX2DARRAY(DisplacementTexture, float3(i.data.uv * 3.0f, 0));
+                float4 displacementFoam3 = UNITY_SAMPLE_TEX2DARRAY(DisplacementTexture, float3(i.data.uv * 3.0f, 2));
 				displacementFoam3.a += _FoamSubtract2;
-                float4 displacementFoam4 = UNITY_SAMPLE_TEX2DARRAY(DisplacementTexture, float3(i.data.uv * 0.13f, 0));
+                float4 displacementFoam4 = UNITY_SAMPLE_TEX2DARRAY(DisplacementTexture, float3(i.data.uv * 0.13f, 3));
 				displacementFoam4.a += _FoamSubtract3;
                 //float4 displacementFoam = displacementFoam1 + displacementFoam2 + displacementFoam3 + displacementFoam4;
-                float4 displacementFoam = displacementFoam1;
+                float4 displacementFoam = displacementFoam1 + displacementFoam4;
 
                 float2 slopes1 = UNITY_SAMPLE_TEX2DARRAY(SlopeTexture, float3(i.data.uv * 0.01f, 0));
 				float2 slopes2 = UNITY_SAMPLE_TEX2DARRAY(SlopeTexture, float3(i.data.uv * 3.0f, 1));
 				float2 slopes3 = UNITY_SAMPLE_TEX2DARRAY(SlopeTexture, float3(i.data.uv * 3.0f, 2));
 				float2 slopes4 = UNITY_SAMPLE_TEX2DARRAY(SlopeTexture, float3(i.data.uv * 0.13f, 3));
-				//float2 slopes = slopes1 + slopes2 + slopes3 + slopes4;
-                float2 slopes = slopes1;
+				float2 slopes = slopes1 + slopes2 + slopes3 + slopes4;
+
 
                 slopes *=_NormalStrength;
 				float foam = lerp(0.0f, saturate(displacementFoam.a), pow(depth, _FoamDepthAttenuation));
