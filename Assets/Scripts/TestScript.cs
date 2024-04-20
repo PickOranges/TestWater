@@ -436,7 +436,7 @@ public class TestScript : MonoBehaviour
         waterFFTShader.SetTexture(5, "DisplacementTexture", _displacement);
         waterFFTShader.SetTexture(5, "SpectrumTexture", _spectrum);
         waterFFTShader.SetTexture(5, "SlopeTexture", _slope);
-        waterFFTShader.SetTexture(5, "target", target);
+        //waterFFTShader.SetTexture(5, "target", target);
         waterFFTShader.Dispatch(5, threadGroupsX, threadGroupsY, 1);
 
         _displacement.GenerateMips();
