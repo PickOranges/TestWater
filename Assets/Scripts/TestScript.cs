@@ -196,53 +196,56 @@ public class TestScript : MonoBehaviour
     void CreatePlane()
     {
         GetComponent<MeshFilter>().mesh = mesh = new Mesh();
+        mesh.name = "WaterPlane";
+        mesh.indexFormat = IndexFormat.UInt32;
+        
         int length = 100;
         float halfL = length * 0.5f;
         int res = 2;
         int sideCnt = length * res;
         int num_vert = sideCnt * sideCnt;
-        verts = new Vector3[(sideCnt+1)* (sideCnt + 1)];  // +1 to avoid triangle idx access the vertex index that goes out of bound.
-        tris = new int[num_vert*6];
+        verts = new Vector3[(sideCnt+1)*(sideCnt+1)];  // +1 to avoid triangle idx access the vertex index that goes out of bound.
 
         Vector2[] uv = new Vector2[verts.Length];
         Vector4[] tangents = new Vector4[verts.Length];
         Vector4 tangent = new Vector4(1f, 0f, 0f, -1f);
-        mesh.name = "WaterPlane";
-        //mesh.indexFormat = IndexFormat.UInt32;
+        
         
         // fill verts
         float deltaLength=(float)length/sideCnt;
         for(int i=0, x=0; x<=sideCnt; ++x)
         {
             for (int z=0; z<=sideCnt; ++z, ++i){
-                verts[i] = new Vector3( x*deltaLength-halfL, 0, z*deltaLength - halfL);  // init vert coordinates, later vert.y will be replaced with the real height.
+                verts[i] = new Vector3( (float)x*deltaLength-halfL, 0, (float)z*deltaLength - halfL);  // init vert coordinates, later vert.y will be replaced with the real height.
                 uv[i] = new Vector2((float)x / sideCnt, (float)z / sideCnt);
                 tangents[i] = tangent;
             }
         }
-        
-        // fill tris
-        for (int vi=0, ti=0, x=0; x<sideCnt; ++x)
-        {
-            for(int z=0; z<sideCnt; ++z, ++vi)
-            {
-                tris[ti++] = vi;
-                tris[ti++] = vi + 1;
-                tris[ti++] = vi + 2 + sideCnt;
 
-                tris[ti++] = vi;
-                tris[ti++] = vi + sideCnt + 2;
-                tris[ti++] = vi + sideCnt + 1;
+        mesh.vertices = verts;
+        mesh.uv = uv;
+        mesh.tangents = tangents;
+
+        // fill tris
+        tris = new int[num_vert * 6];
+        for (int vi=0, ti=0, x=0; x<sideCnt; ++vi, ++x)
+        {
+            for(int z=0; z<sideCnt; ti+=6, ++z, ++vi)
+            {
+                tris[ti] = vi;
+                tris[ti+1] = vi + 1;
+                tris[ti+2] = vi + 2 + sideCnt;
+
+                tris[ti+3] = vi;
+                tris[ti+4] = vi + sideCnt + 2;
+                tris[ti+5] = vi + sideCnt + 1;
             }
         }
 
-        mesh.vertices = verts;
+        
         mesh.triangles = tris;
         mesh.RecalculateNormals();
-        normals=mesh.normals;
-        mesh.uv = uv;
-        mesh.tangents = tangents;
-       
+        normals =mesh.normals; 
     }
 
     void CreateMaterial()
