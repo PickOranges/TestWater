@@ -370,7 +370,7 @@ public class TestScript : MonoBehaviour
 
         // 2. Set Data & Dispatch
         waterFFTShader.SetTexture(0, "InitSpectrumTexture", _initSpectrum);
-        //waterFFTShader.SetTexture(0, "target", target);
+        waterFFTShader.SetTexture(0, "target", target);
         waterFFTShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
         waterFFTShader.SetTexture(1, "InitSpectrumTexture", _initSpectrum);
         //waterFFTShader.SetTexture(1, "target", target);
