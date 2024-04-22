@@ -46,19 +46,19 @@ struct SpectrumParameters { // passed from CPU to GPU, also user can adjust thos
 StructuredBuffer<SpectrumParameters> Sps;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-float tanhvalue(float kD){ // k: length/magnitute of vector k=[kx, kz]
-    //return tanh(min(kD, 3));        // original: 20, idk why?
-    return tanh(min(kD, 20));        
-}
+//float tanhvalue(float kD){ // k: length/magnitute of vector k=[kx, kz]
+//    //return tanh(min(kD, 3));        // original: 20, idk why?
+//    return tanh(min(kD, 20));        
+//}
 
-float Frequency(float k, float tanhv){ 
-   return sqrt(g*k*tanhv);
-}
+//float Frequency(float k, float tanhv){ 
+//   return sqrt(g*k*tanhv);
+//}
 
-float FrequencyDerivative(float kD, float tanhv, float freq){  // length/magnitute of w(k)
-    float sech2=pow(1/cosh(kD),2);
-    return 0.5*g*(kD*sech2 + tanhv) / freq;
-}
+//float FrequencyDerivative(float kD, float tanhv, float freq){  // length/magnitute of w(k)
+//    float sech2=pow(1/cosh(kD),2);
+//    return 0.5*g*(kD*sech2 + tanhv) / freq;
+//}
 
 float Dispersion(float kMag) {
     return sqrt(g * kMag * tanh(min(kMag * D, 20)));  // ??? why 20. TODO: remove it and see what'll happen.
@@ -183,16 +183,16 @@ float ShapingParameterSksi(SpectrumParameters sp, float w){
 
 // finalD = D_base + D_ksi, paper P36 left-bottom.
 float finalDirectionalSpread(SpectrumParameters sp, float w, float theta){
-    float s=ShapingParameter(sp,w);
-    float sksi=ShapingParameterSksi(sp,w);
+    //float s=ShapingParameter(sp,w);
+    //float sksi=ShapingParameterSksi(sp,w);
 
-    float Dbase=MitsuyasuDS(w,theta,s);
-    float Dksi=MitsuyasuDS(w,theta,sksi);
+    //float Dbase=MitsuyasuDS(w,theta,s);
+    //float Dksi=MitsuyasuDS(w,theta,sksi);
     
-    return lerp(2.0f / 3.1415f * cos(theta) * cos(theta), Dbase+Dksi, sp.spreadBlend);
+    //return lerp(2.0f / 3.1415f * cos(theta) * cos(theta), Dbase+Dksi, sp.spreadBlend);
 
-    //float s = SpreadPower(w, sp.peakOmega) + 16 * tanh(min(w / sp.peakOmega, 20)) * sp.swell * sp.swell;
-    //return lerp(2.0f / 3.1415f * cos(theta) * cos(theta), Cosine2s(theta - sp.angle, s), sp.spreadBlend);
+    float s = SpreadPower(w, sp.peakOmega) + 16 * tanh(min(w / sp.peakOmega, 20)) * sp.swell * sp.swell;
+    return lerp(2.0f / 3.1415f * cos(theta) * cos(theta), Cosine2s(theta - sp.angle, s), sp.spreadBlend);
 }
 
 // attenuation
@@ -241,15 +241,14 @@ void CS_InitSpectrum (uint3 id : SV_DispatchThreadID)
 
         if(kLength>=_LowCutoff && kLength<=_HighCutoff){    
             float theta = atan2(k.y, k.x);
-            //float w=Dispersion(kLength);
-            //float dw=DispersionDerivative(kLength);
-            float tanhval = tanhvalue(kLength);
-            float w=Frequency(kLength,tanhval);
-            float dw=FrequencyDerivative(kLength, tanhval, w);
+            float w=Dispersion(kLength);
+            float dw=DispersionDerivative(kLength);
+            //float tanhval = tanhvalue(kLength);
+            //float w=Frequency(kLength,tanhval);
+            //float dw=FrequencyDerivative(kLength, tanhval, w);
 
-            //float spectrum = /*TMA_phi(w) * JONSWAP(Sps[0],w) */ finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
-            float spectrum = JONSWAP(Sps[0],w) * finalDirectionalSpread(Sps[0],w,theta) * ShortWavesFade(Sps[0],kLength);
-            //float spectrum = /*JONSWAP(Sps[i*2],w) */ finalDirectionalSpread(Sps[i*2],w,theta) * ShortWavesFade(Sps[i*2],kLength);
+            //float spectrum = /*TMA_phi(w) * JONSWAP(Sps[i*2],w) */ finalDirectionalSpread(Sps[i*2],w,theta) * ShortWavesFade(Sps[i*2],kLength);
+            float spectrum = JONSWAP(Sps[i*2],w) * finalDirectionalSpread(Sps[i*2],w,theta) * ShortWavesFade(Sps[i*2],kLength);
             if (Sps[i*2+1].scale > 0) 
                 spectrum += JONSWAP(Sps[i*2+1],w) * finalDirectionalSpread(Sps[i*2+1],w,theta) * ShortWavesFade(Sps[i*2+1],kLength);
 

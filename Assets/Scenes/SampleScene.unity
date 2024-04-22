@@ -209,13 +209,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 3.86, z: -12.82}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 5, z: -12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -426,12 +426,12 @@ MonoBehaviour:
   displacementDepthFalloff: 1
   updateSpectrum: 0
   lengthScale1: 94
-  lengthScale2: 128
+  lengthScale2: 200
   lengthScale3: 64
   lengthScale4: 32
   spectrum1:
     scale: 0.1
-    windSpeed: 2
+    windSpeed: 15
     windDirection: 22
     fetch: 100000
     spreadBlend: 0.642
@@ -440,10 +440,10 @@ MonoBehaviour:
     shortWavesFade: 0.025
   spectrum2:
     scale: 0.07
-    windSpeed: 2
+    windSpeed: 0.1
     windDirection: 59
     fetch: 1000
-    spreadBlend: 0
+    spreadBlend: 1
     swell: 1
     peakEnhancement: 1
     shortWavesFade: 0.01
@@ -502,9 +502,9 @@ MonoBehaviour:
     peakEnhancement: 1
     shortWavesFade: 0.0001
   sunDirection:
-    x: -1.29
-    y: 12
-    z: -4.86
+    x: 1000
+    y: 0
+    z: 0
     w: 0
   sunIrradiance: {r: 2.9960785, g: 1.9450982, b: 0.87843144, a: 1}
   normalStrength: 1
@@ -522,8 +522,8 @@ MonoBehaviour:
   foamColor: {r: 0.74901956, g: 0.6951685, b: 0.6119441, a: 1}
   foamRoughnessModifier: 0
   foamDepthAttenuation: 1
-  scatterColor: {r: 0.03137255, g: 0.14901961, b: 0.32156864, a: 1}
-  bubbleColor: {r: 0, g: 0.039215688, b: 0.03137255, a: 1}
+  scatterColor: {r: 0.0009803922, g: 0.004656863, b: 0.01004902, a: 1}
+  bubbleColor: {r: 0, g: 0.007617736, b: 0.019607844, a: 1}
   environmentLightStrength: 0.5
   wavePeakScatterStrength: 1
   heightModifier: 1
@@ -538,7 +538,7 @@ Transform:
   m_GameObject: {fileID: 667346737}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 3.3, z: 0}
+  m_LocalPosition: {x: 0, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
