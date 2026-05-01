@@ -6,9 +6,8 @@ Implemented a real-time ocean rendering system using FFT-based wave simulation, 
 The project explores how to translate mathematical wave models into efficient real-time rendering on GPU.
 
 ## Tech Stack
-- C++
+- C#
 - Compute Shader / GPU
-- FFT (Fast Fourier Transform)
 - HLSL & ShaderLab
 
 ## My Contributions
@@ -17,7 +16,7 @@ The project explores how to translate mathematical wave models into efficient re
 
 - Developed GPU-based height map and normal calculation using compute shaders
 
-- Implemented physically-based water shading, including Fresnel reflection for view-dependent lighting
+- Implemented physically-based water shading, including microfacet model and Fresnel reflection for view-dependent lighting
 
 - Optimized performance by moving heavy computation from CPU to GPU(dynamic tessellation and height map calculation via compute shader)
 
