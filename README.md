@@ -7,7 +7,7 @@ The project explores how to translate mathematical wave models into efficient re
 
 ## Tech Stack
 - C#
-- Compute Shader / GPU
+- Compute Shader
 - HLSL & ShaderLab
 
 ## My Contributions
